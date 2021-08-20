@@ -35,6 +35,10 @@ ICM20948::status ICM20948::begin() {
     ret = setSleep(false);
     if (ret != ok) return ret;
 
+    // wake up
+    ret = setLowPower(false);
+    if (ret != ok) return ret;
+
 
     return ok;
 }
@@ -150,6 +154,28 @@ ICM20948::status ICM20948::setSleep(bool on) {
 
     // change needed settings
     reg.SLEEP = on ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setLowPower(bool on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_PWR_MGMT_1_t reg;
+    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.LP_EN = on ? 1 : 0;
 
     // write whole register back
     ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));

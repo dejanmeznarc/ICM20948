@@ -9,6 +9,10 @@
 
 ICM20948 imu(IMU_CS, SPI, 7000000);
 
+
+ICM20948::status last_status = ICM20948::unknown;
+
+
 void setup() {
     Serial.begin(1000000);
     Serial.println("Hello world!");
@@ -24,15 +28,23 @@ void setup() {
 
 // write your initialization code here
     Serial.println("init of imu");
-    ICM20948::status status = imu.begin();
-    if (status == ICM20948::ok) Serial.println("ALL RIGHT");
+    last_status = imu.begin();
+    if (last_status == ICM20948::ok) Serial.println("ALL RIGHT");
     else
-        Serial.println(status);
+        Serial.println(last_status);
 }
 
 void loop() {
 // write your code here
 
     Serial.println("looopp");
+
+    if (last_status == ICM20948::ok) Serial.println("status: ok");
+    else {
+        Serial.print("NOT OK: error=");
+        Serial.println(last_status);
+    }
+
+
     delay(1000);
 }

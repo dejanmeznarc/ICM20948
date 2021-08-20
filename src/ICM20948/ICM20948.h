@@ -67,6 +67,7 @@ private:
     status setBank(uint8_t bank);
 
 
+    status setLowPower(bool on);
 };
 
 
