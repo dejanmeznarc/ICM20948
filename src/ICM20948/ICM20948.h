@@ -51,7 +51,7 @@ private:
     SPISettings _spiSettings;
 
 
-    uint8_t _cur_bank;
+    uint8_t _cur_bank = 255; // bank 255 doesnt exists, set it as init
 
 
     status checkWhoAmI();
