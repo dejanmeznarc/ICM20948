@@ -13,11 +13,10 @@ void setup() {
     Serial.begin(1000000);
     Serial.println("Hello world!");
 
-    for (int i = 0; i <= 5; ++i) {
-        Serial.println(String(i) + " / 5 waiting...");
+    for (int i = 0; i <= 7; ++i) {
+        Serial.println(String(i) + " / 7 waiting...");
         delay(1000);
     }
-
 
 
     Serial.println("init of spi!");

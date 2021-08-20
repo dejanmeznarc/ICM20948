@@ -53,6 +53,9 @@ private:
 
     uint8_t _cur_bank;
 
+
+    status checkWhoAmI();
+
     status read(uint8_t reg, uint8_t *data, uint32_t len = 1);
 
     status write(uint8_t reg, uint8_t *data, uint32_t len = 1);

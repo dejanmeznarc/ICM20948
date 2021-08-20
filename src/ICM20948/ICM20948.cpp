@@ -22,19 +22,27 @@ ICM20948::status ICM20948::begin() {
     _spi->transfer(0x00);
     _spi->endTransaction();
 
-    // Check Who am i
+
+    if (checkWhoAmI() != wrongID) return wrongID;
+
+    return ok;
+}
+
+
+ICM20948::status ICM20948::checkWhoAmI() {
+
     uint8_t whoami = 0x00;
+
     setBank(0);
-    status tempStatus = read(ICM_REG_WHO_AM_I, &whoami);
-    if (tempStatus != ok) return tempStatus;
+    read(ICM_REG_WHO_AM_I, &whoami);
+
     if (whoami != ICM_WHOAMI) return wrongID;
 
     return ok;
 }
 
-ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
 
-    if (_spi == nullptr) return paramErr;
+ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
 
     // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
     // but it guarantees that the lines will start in the correct states even
@@ -60,8 +68,6 @@ ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
 }
 
 ICM20948::status ICM20948::write(uint8_t reg, uint8_t *data, uint32_t len) {
-
-    if (_spi == nullptr) return paramErr;
 
     // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
     // but it guarantees that the lines will start in the correct states even
