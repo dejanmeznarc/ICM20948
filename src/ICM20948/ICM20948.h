@@ -41,14 +41,17 @@ public:
 
     status begin(bool alsoConfigure);
 
-    // Chip resets
-    status reset();
-
-    status resetMag();
+    // Read values
 
     status autoFetchData(bool enable);
 
     void autoFetchCallback();
+
+
+    // Chip resets
+    status reset();
+
+    status resetMag();
 
 
     // General chip settings
@@ -59,6 +62,8 @@ public:
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 
     // Interrupt settings
+    uint8_t getIntPin() const;
+
     status rawDataInterrupt(void (*callback)());
 
     status setIntEnableOnRawDataReady(bool on);
@@ -85,8 +90,6 @@ public:
 
     status setAccDlpfEnabled(bool on);
 
-
-    uint8_t getIntPin() const;
 
 private:
 
