@@ -10,7 +10,8 @@
 ICM20948 imu(IMU_CS, SPI, 7000000);
 
 
-ICM20948::status last_status = ICM20948::unknown;
+ICM20948::status begin_status = ICM20948::unknown;
+ICM20948::status set_int_status = ICM20948::unknown;
 
 
 void setup() {
@@ -28,21 +29,37 @@ void setup() {
 
 // write your initialization code here
     Serial.println("init of imu");
-    last_status = imu.begin(true);
-    if (last_status == ICM20948::ok) Serial.println("ALL RIGHT");
+    begin_status = imu.begin(true);
+    if (begin_status == ICM20948::ok) Serial.println("ALL RIGHT");
     else
-        Serial.println(last_status);
+        Serial.println(begin_status);
+
+
+    Serial.println("set interrupt");
+
+    set_int_status = imu.setIntEnableOnRawDataReady(true);
+    if (begin_status == ICM20948::ok) Serial.println("ALL RIGHT 2");
+    else
+        Serial.println(begin_status);
+
 }
 
 void loop() {
 // write your code here
 
-    Serial.println("looopp");
+    Serial.println("\n \n");
 
-    if (last_status == ICM20948::ok) Serial.println("status: ok");
+    if (begin_status == ICM20948::ok) Serial.println("begin status: ok");
     else {
-        Serial.print("NOT OK: error=");
-        Serial.println(last_status);
+        Serial.print("begin status is NOT OK: error=");
+        Serial.println(begin_status);
+    }
+
+
+    if (begin_status == ICM20948::ok) Serial.println("int status: ok");
+    else {
+        Serial.print("int status is NOT OK: error=");
+        Serial.println(begin_status);
     }
 
 

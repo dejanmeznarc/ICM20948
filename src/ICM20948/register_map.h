@@ -217,6 +217,66 @@ typedef struct {
 #define ICM_CNF_ACC_DLPF_D473BW_N499BW   0x07
 
 
+typedef struct {
+    uint8_t I2C_MST_INT_EN: 1;
+    uint8_t DMP_INT1_EN: 1;
+    uint8_t PLL_READY_EN: 1;
+    uint8_t WOM_INT_EN: 1;
+    uint8_t reserved_0: 3;
+    uint8_t REG_WOF_EN: 1;
+} ICM_20948_INT_ENABLE_t;
+
+
+
+
+// ICM_20948_INT_ENABLE_1_t bank 0
+#define ICM_REG_INT_ENABLE_1 0x11
+typedef struct {
+    uint8_t RAW_DATA_0_RDY_EN: 1;
+    uint8_t reserved_0: 7;
+} ICM_STRUCT_REG_INT_ENABLE_1_t;
+
+
+typedef union {
+    struct {
+        uint8_t FIFO_OVERFLOW_EN_40: 5;
+        uint8_t reserved_0: 3;
+    } grouped;
+    struct {
+        uint8_t FIFO_OVERFLOW_EN_0: 1;
+        uint8_t FIFO_OVERFLOW_EN_1: 1;
+        uint8_t FIFO_OVERFLOW_EN_2: 1;
+        uint8_t FIFO_OVERFLOW_EN_3: 1;
+        uint8_t FIFO_OVERFLOW_EN_4: 1;
+        uint8_t reserved_0: 3;
+    } individual;
+} ICM_20948_INT_ENABLE_2_t;
+
+
+typedef union {
+    struct {
+        uint8_t FIFO_WM_EN_40: 5;
+        uint8_t reserved_0: 3;
+    } grouped;
+    struct {
+        uint8_t FIFO_WM_EN_0: 1;
+        uint8_t FIFO_WM_EN_1: 1;
+        uint8_t FIFO_WM_EN_2: 1;
+        uint8_t FIFO_WM_EN_3: 1;
+        uint8_t FIFO_WM_EN_4: 1;
+        uint8_t reserved_0: 3;
+    } individual;
+} ICM_20948_INT_ENABLE_3_t;
+
+
+
+
+
+
+
+
+
+
 
 
 

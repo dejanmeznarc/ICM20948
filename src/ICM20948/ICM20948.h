@@ -55,6 +55,9 @@ public:
 
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 
+    // Interrupt settings
+    status setIntEnableOnRawDataReady(bool on);
+
 
     // Gyro configuration
     status setGyrFss(uint8_t cnf_gyr_fss);

@@ -160,6 +160,32 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 
 }
 
+ICM20948::status ICM20948::setIntEnableOnRawDataReady(bool on) {
+    status ret;
+
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    ICM_STRUCT_REG_INT_ENABLE_1_t regIntEnable1;
+
+    regIntEnable1.RAW_DATA_0_RDY_EN = on ? 1 : 0;
+    regIntEnable1.reserved_0 = 0; // clear RAM garbage
+
+    ret = write(ICM_REG_INT_ENABLE_1, (uint8_t *) &regIntEnable1, sizeof(ICM_STRUCT_REG_INT_ENABLE_1_t));
+    if (ret != ok) return ret;
+
+    // wait 1us, so imu can write data
+    delayMicroseconds(1);
+
+    // read back same register to verify written;
+    ret = read(ICM_REG_INT_ENABLE_1, (uint8_t *) &regIntEnable1, sizeof(ICM_STRUCT_REG_INT_ENABLE_1_t));
+    if (ret != ok) return ret;
+
+    if (regIntEnable1.RAW_DATA_0_RDY_EN != on) return err;
+
+    return ok;
+}
+
 
 // Gyro configuration
 ICM20948::status ICM20948::setGyrFss(uint8_t cnf_gyr_fss) {
