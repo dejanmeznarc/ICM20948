@@ -57,7 +57,7 @@ public:
 
 
     // Gyro configuration
-    status setGyrFSS(uint8_t cnf_gyr_fss);
+    status setGyrFss(uint8_t cnf_gyr_fss);
 
     status setGyrDlpfConf(uint8_t cnf_gyr_dlpf);
 
@@ -104,15 +104,16 @@ private:
 
 
     // I2C configuration for accessing mag
-    status setI2cMasterEnable(bool enable);
+    status i2cMasterSetEnable(bool enable);
 
-    status resetI2cMaster();
+    status i2cMasterReset();
+
+    status i2cMasterSetPassthrough(bool passthrough);
 
     status i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data);
 
     status i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data);
 
-    status setI2cMasterPassthrough(bool passthrough);
 
     status i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, uint8_t len, bool Rw, bool enable,
                                   bool data_only, bool grp, bool swap, uint8_t dataOut);

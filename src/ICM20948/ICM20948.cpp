@@ -54,7 +54,7 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     if (ret != ok) return ret;
 
     // Configure gyro
-    ret = setGyrFSS(ICM_CNF_GYR_FSS_DPS250);
+    ret = setGyrFss(ICM_CNF_GYR_FSS_DPS250);
     if (ret != ok) return ret;
     ret = setGyrDlpfConf(ICM_CNF_GYR_DLPF_D361BW4_N376BW5);
     if (ret != ok) return ret;
@@ -184,7 +184,7 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 
 
 // Gyro configuration
-ICM20948::status ICM20948::setGyrFSS(uint8_t cnf_gyr_fss) {
+ICM20948::status ICM20948::setGyrFss(uint8_t cnf_gyr_fss) {
     status ret;
 
     // Set correct bank
@@ -358,7 +358,7 @@ ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
     status ret;
 
 
-    ret = setI2cMasterEnable(true);
+    ret = i2cMasterSetEnable(true);
     if (ret != ok) return ret;
 
     ret = resetMag();
@@ -375,7 +375,7 @@ ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
         //See if we can read the WhoIAm register correctly
         if (checkMagWhoAmI() == ok) break; //WIA matched!
 
-        ret = resetI2cMaster();
+        ret = i2cMasterReset();
         if (ret != ok) return ret;
 
         delay(10);
@@ -478,10 +478,10 @@ ICM20948::status ICM20948::writeMag(uint8_t reg, uint8_t *data) {
 
 // I2c config for access of magnetometer
 
-ICM20948::status ICM20948::setI2cMasterEnable(bool enable) {
+ICM20948::status ICM20948::i2cMasterSetEnable(bool enable) {
     status ret;
 
-    ret = setI2cMasterPassthrough(false);
+    ret = i2cMasterSetPassthrough(false);
     if (ret != ok) return ret;
 
 
@@ -517,7 +517,7 @@ ICM20948::status ICM20948::setI2cMasterEnable(bool enable) {
     return ICM20948::ok;
 }
 
-ICM20948::status ICM20948::resetI2cMaster() {
+ICM20948::status ICM20948::i2cMasterReset() {
 
     status ret;
 
@@ -542,16 +542,7 @@ ICM20948::status ICM20948::resetI2cMaster() {
 
 }
 
-ICM20948::status ICM20948::i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data) {
-    return i2cControllerTransaction(addr, reg, data, 1, false, true);
-}
-
-ICM20948::status ICM20948::i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data) {
-    return i2cControllerTransaction(addr, reg, data, 1, true, true);
-}
-
-
-ICM20948::status ICM20948::setI2cMasterPassthrough(bool passthrough) {
+ICM20948::status ICM20948::i2cMasterSetPassthrough(bool passthrough) {
     status ret;
 
     // Set correct bank
@@ -572,6 +563,15 @@ ICM20948::status ICM20948::setI2cMasterPassthrough(bool passthrough) {
 
     return ok;
 }
+
+ICM20948::status ICM20948::i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data) {
+    return i2cControllerTransaction(addr, reg, data, 1, false, true);
+}
+
+ICM20948::status ICM20948::i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data) {
+    return i2cControllerTransaction(addr, reg, data, 1, true, true);
+}
+
 
 ICM20948::status
 ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int len, bool Rw, bool sendRegAddr) {
