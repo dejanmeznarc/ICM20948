@@ -8,10 +8,11 @@
 /// PUBLIC METHODS                              ///
 //////////////////////////////////////////////////
 
-ICM20948::ICM20948(uint8_t pinCs, SPIClass &spiPort, uint32_t spiFreq) {
+ICM20948::ICM20948(uint8_t pinCs, SPIClass &spiPort, uint32_t spiFreq, uint8_t pinInterrupt) {
     _spi = &spiPort;
     _spiSettings = SPISettings(spiFreq, MSBFIRST, SPI_MODE_0);
     _pin_cs = pinCs;
+    _pin_int = pinInterrupt;
 }
 
 ICM20948::status ICM20948::begin(bool alsoConfigure) {
@@ -160,6 +161,7 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 
 }
 
+// interrupt settings
 ICM20948::status ICM20948::setIntEnableOnRawDataReady(bool on) {
     status ret;
 
@@ -184,6 +186,32 @@ ICM20948::status ICM20948::setIntEnableOnRawDataReady(bool on) {
     if (regIntEnable1.RAW_DATA_0_RDY_EN != on) return err;
 
     return ok;
+}
+
+ICM20948::status ICM20948::setIntActiveLow(bool active_low_on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_INT_PIN_CONF_t reg;
+    ret = read(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.INT1_ACTL = active_low_on ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+uint8_t ICM20948::getIntPin() const {
+    return _pin_int;
 }
 
 
@@ -761,6 +789,8 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
 
     return ok;
 }
+
+
 
 
 

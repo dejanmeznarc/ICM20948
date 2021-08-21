@@ -7,12 +7,17 @@
 #define IMU_INT PA12
 
 
-ICM20948 imu(IMU_CS, SPI, 7000000);
+ICM20948 imu(IMU_CS, SPI, 7000000, IMU_INT);
 
 
 ICM20948::status begin_status = ICM20948::unknown;
 ICM20948::status set_int_status = ICM20948::unknown;
+ICM20948::status conf_int_status = ICM20948::unknown;
 
+
+void data_ready() {
+    Serial.println("data ready!");
+}
 
 void setup() {
     Serial.begin(1000000);
@@ -38,9 +43,19 @@ void setup() {
     Serial.println("set interrupt");
 
     set_int_status = imu.setIntEnableOnRawDataReady(true);
-    if (begin_status == ICM20948::ok) Serial.println("ALL RIGHT 2");
+    if (set_int_status == ICM20948::ok) Serial.println("ALL RIGHT 2");
     else
-        Serial.println(begin_status);
+        Serial.println(set_int_status);
+
+    conf_int_status = imu.setIntActiveLow(true);
+    if (conf_int_status == ICM20948::ok) Serial.println("ALL RIGHT 3");
+    else
+        Serial.println(conf_int_status);
+
+
+
+
+//    attachInterrupt(imu.getIntPin(), data_ready, FALLING);
 
 }
 
@@ -56,10 +71,16 @@ void loop() {
     }
 
 
-    if (begin_status == ICM20948::ok) Serial.println("int status: ok");
+    if (conf_int_status == ICM20948::ok) Serial.println("int status: ok");
     else {
         Serial.print("int status is NOT OK: error=");
-        Serial.println(begin_status);
+        Serial.println(conf_int_status);
+    }
+
+    if (conf_int_status == ICM20948::ok) Serial.println("conf int status: ok");
+    else {
+        Serial.print("conf int status is NOT OK: error=");
+        Serial.println(conf_int_status);
     }
 
 

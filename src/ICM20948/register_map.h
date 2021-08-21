@@ -269,7 +269,18 @@ typedef union {
 } ICM_20948_INT_ENABLE_3_t;
 
 
-
+// aka. AGB0_REG_INT_PIN_CONFIG & ICM_20948_INT_PIN_CFG_t
+#define ICM_REG_INT_PIN_CONF 0x15
+typedef struct {
+    uint8_t reserved_0: 1;
+    uint8_t BYPASS_EN: 1;
+    uint8_t FSYNC_INT_MODE_EN: 1;
+    uint8_t ACTL_FSYNC: 1;
+    uint8_t INT_ANYRD_2CLEAR: 1;
+    uint8_t INT1_LATCH_EN: 1;
+    uint8_t INT1_OPEN: 1;
+    uint8_t INT1_ACTL: 1;
+} ICM_STRUCT_REG_INT_PIN_CONF_t;
 
 
 

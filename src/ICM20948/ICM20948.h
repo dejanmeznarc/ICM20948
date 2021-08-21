@@ -37,8 +37,7 @@ public:
     };
 
 
-    explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000);
-
+    explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000, uint8_t pinInterrupt = 0);
 
     status begin(bool alsoConfigure);
 
@@ -58,6 +57,8 @@ public:
     // Interrupt settings
     status setIntEnableOnRawDataReady(bool on);
 
+    status setIntActiveLow(bool active_low_on);
+
 
     // Gyro configuration
     status setGyrFss(uint8_t cnf_gyr_fss);
@@ -75,10 +76,13 @@ public:
     status setAccDlpfEnabled(bool on);
 
 
+    uint8_t getIntPin() const;
+
 private:
 
 
     uint8_t _pin_cs;
+    uint8_t _pin_int;
     SPIClass *_spi;
     SPISettings _spiSettings;
 
