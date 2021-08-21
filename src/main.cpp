@@ -14,6 +14,7 @@ ICM20948::status begin_status = ICM20948::unknown;
 ICM20948::status set_int_status = ICM20948::unknown;
 ICM20948::status conf_int_status = ICM20948::unknown;
 ICM20948::status conf_int_latch_status = ICM20948::unknown;
+ICM20948::status conf_int_anyre_status = ICM20948::unknown;
 
 
 void data_ready() {
@@ -58,6 +59,10 @@ void setup() {
     else
         Serial.println(conf_int_latch_status);
 
+    conf_int_anyre_status = imu.setIntAnyRegReadClears(false);
+    if (conf_int_anyre_status == ICM20948::ok) Serial.println("ALL RIGHT 4");
+    else
+        Serial.println(conf_int_anyre_status);
 
 
 //    attachInterrupt(imu.getIntPin(), data_ready, FALLING);
@@ -92,6 +97,12 @@ void loop() {
     else {
         Serial.print("conf_int_latch_status is NOT OK: error=");
         Serial.println(conf_int_latch_status);
+    }
+
+    if (conf_int_anyre_status == ICM20948::ok) Serial.println("conf_int_anyre_status status: ok");
+    else {
+        Serial.print("conf_int_anyre_status is NOT OK: error=");
+        Serial.println(conf_int_anyre_status);
     }
 
 
