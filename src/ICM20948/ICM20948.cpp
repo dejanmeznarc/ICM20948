@@ -51,6 +51,11 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     ret = setSampleMode((ICM_INTERNAL_ACC | ICM_INTERNAL_GYR), ICM_CNF_SAMPLE_MODE_CONT);
     if (ret != ok) return ret;
 
+    ret = setGyrFSS(ICM_CNF_GYR_FSS_DPS250);
+    if (ret != ok) return ret;
+
+    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
+    if (ret != ok) return ret;
 
     return ok;
 }
@@ -563,5 +568,49 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 
     return ok;
 
+}
+
+ICM20948::status ICM20948::setGyrFSS(uint8_t cnf_gyr_fss) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_GYR_CONF_1_t reg;
+    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.GYRO_FS_SEL = cnf_gyr_fss;
+
+    // write whole register back
+    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_ACC_CONF_1_t reg;
+    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.ACCEL_FS_SEL = cnf_acc_fss;
+
+    // write whole register back
+    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
 }
 

@@ -97,6 +97,10 @@ private:
                            bool data_only, bool grp, bool swap, uint8_t dataOut);
 
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
+
+    status setGyrFSS(uint8_t cnf_gyr_fss);
+
+    status setAccFSS(uint8_t cnf_acc_fss);
 };
 
 

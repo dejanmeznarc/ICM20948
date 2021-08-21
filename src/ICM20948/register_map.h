@@ -3,6 +3,8 @@
 //
 
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedMacroInspection"
 #define ICM_WHOAMI 0xEA
 
 #define ICM_REG_WHO_AM_I 0x00
@@ -158,6 +160,36 @@ typedef struct {
 
 
 
+//ICM_20948_GYRO_CONFIG_1_t - bank 2
+#define ICM_REG_GYR_CONF_1 0x01
+typedef struct {
+    uint8_t GYRO_FCHOICE: 1;
+    uint8_t GYRO_FS_SEL: 2;
+    uint8_t GYRO_DLPFCFG: 3;
+    uint8_t reserved_0: 2;
+} ICM_STRUCT_REG_GYR_CONF_1_t;
+
+#define ICM_CNF_GYR_FSS_DPS250 0x00
+#define ICM_CNF_GYR_FSS_DPS500 0x01
+#define ICM_CNF_GYR_FSS_DPS1000 0x02
+#define ICM_CNF_GYR_FSS_DPS2000 0x03
+
+
+//ICM_CNF_ACC_FSS_GMP2 - bank2
+#define ICM_REG_ACC_CONF_1 0x14
+typedef struct {
+    uint8_t ACCEL_FCHOICE: 1;
+    uint8_t ACCEL_FS_SEL: 2;
+    uint8_t ACCEL_DLPFCFG: 3;
+    uint8_t reserved_0: 2;
+} ICM_STRUCT_REG_ACC_CONF_1_t;
+
+#define ICM_CNF_ACC_FSS_GMP2 0x00
+#define ICM_CNF_ACC_FSS_GMP4 0x01
+#define ICM_CNF_ACC_FSS_GMP8 0x02
+#define ICM_CNF_ACC_FSS_GMP16 0x03
+
+
 
 
 
@@ -196,3 +228,4 @@ typedef struct {
 #define ICM_MAG_REG_CNTL3 0x32
 
 
+#pragma clang diagnostic pop
