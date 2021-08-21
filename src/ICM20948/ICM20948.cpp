@@ -39,6 +39,10 @@ ICM20948::status ICM20948::begin() {
     ret = setLowPower(false);
     if (ret != ok) return ret;
 
+    // wake up
+    ret = setupMagnetometer(true);
+    if (ret != ok) return ret;
+
 
     return ok;
 }
@@ -183,3 +187,342 @@ ICM20948::status ICM20948::setLowPower(bool on) {
 
     return ok;
 }
+
+ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
+    status ret;
+
+
+    ret = setI2cMasterEnable(true);
+    if (ret != ok) return ret;
+
+    ret = resetMag();
+    if (ret != ok) return ret;
+
+
+
+    //After a ICM reset the Mag sensor may stop responding over the I2C master
+    //Reset the Master I2C until it respond
+    uint8_t tries = 0;
+    while (tries < 10) {
+        tries++;
+
+        //See if we can read the WhoIAm register correctly
+        if (checkMagWhoAmI() == ok) break; //WIA matched!
+
+        ret = resetI2cMaster();
+        if (ret != ok) return ret;
+
+        delay(10);
+
+    }
+
+    if (tries >= 10) return wrongID;
+
+    //Return now if minimal is true. The mag will be configured manually for the DMP
+    if (!alsoConfigure) return ok;
+
+
+    ICM_MAG_STRUCT_REG_CNTL2_t reg;
+    reg.MODE = ICM_MAG_MODE_CONT_100HZ;
+    reg.reserved_0 = 0; // Make sure the unused bits are clear. Probably redundant, but prevents confusion when looking at the I2C traffic
+
+    ret = writeMag(ICM_MAG_REG_CNTL2, (uint8_t *) &reg);
+    if (ret != ok) return ret;
+
+
+    ret = i2cControllerConfigure(0, ICM_MAG_I2C_ADDR, ICM_MAG_REG_ST1, 9, true, true, false, false, false, 0);
+    if (ret != ok) return ret;
+
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setI2cMasterPassthrough(bool passthrough) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_INT_PIN_CNFG_t reg;
+    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.BYPASS_EN = passthrough ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setI2cMasterEnable(bool enable) {
+    status ret;
+
+    ret = setI2cMasterPassthrough(false);
+    if (ret != ok) return ret;
+
+
+    // configure master
+    ret = setBank(3);
+    if (ret != ok) return ret;
+
+    ICM_STRUCT_REG_I2C_MST_CTRL_t ctrl;
+    ret = read(ICM_REG_I2C_MST_CTRL, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_MST_CTRL_t));
+    if (ret != ok) return ret;
+
+    ctrl.I2C_MST_CLK = 0x07; // corresponds to 345.6 kHz, good for up to 400 kHz
+    ctrl.I2C_MST_P_NSR = 1;
+
+    ret = write(ICM_REG_I2C_MST_CTRL, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_MST_CTRL_t));
+    if (ret != ok) return ret;
+
+
+    //enable master
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    ICM_STRUCT_REG_USER_CTRL_t reg;
+    ret = read(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    if (ret != ok) return ret;
+
+    reg.I2C_MST_EN = enable ? 1 : 0;
+
+    ret = write(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    if (ret != ok) return ret;
+
+
+    return ICM20948::ok;
+}
+
+ICM20948::status ICM20948::resetMag() {
+    uint8_t SRST = 1;
+    // SRST: Soft reset
+    // “0”: Normal
+    // “1”: Reset
+    // When “1” is set, all registers are initialized. After reset, SRST bit turns to “0” automatically.
+    return i2cMasterSingleW(ICM_MAG_I2C_ADDR, ICM_MAG_REG_CNTL3, &SRST);
+}
+
+ICM20948::status ICM20948::i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data) {
+    return i2cControllerTransaction(addr, reg, data, 1, false, true);
+}
+
+ICM20948::status ICM20948::i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data) {
+    return i2cControllerTransaction(addr, reg, data, 1, true, true);
+}
+
+
+ICM20948::status
+ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int len, bool Rw, bool sendRegAddr) {
+    status ret;
+
+    addr = (((Rw) ? 0x80 : 0x00) | addr);
+
+
+    ret = setBank(3);
+    if (ret != ok) return ret;
+    write(ICM_REG_I2C_SLV4_ADDR, (uint8_t *) &addr);
+    if (ret != ok) return ret;
+
+    ret = setBank(3);
+    if (ret != ok) return ret;
+    write(ICM_REG_I2C_SLV4_REG, (uint8_t *) &reg);
+    if (ret != ok) return ret;
+
+
+    ICM_STRUCT_REG_I2C_SLV4_CTRL_t i2cControl;
+    i2cControl.EN = 1;
+    i2cControl.INT_EN = false;
+    i2cControl.DLY = 0;
+    i2cControl.REG_DIS = !sendRegAddr;
+
+
+    ICM_STRUCT_REG_I2C_SLV4_DI_t i2cMasterStatus;
+    bool txnFailed = false;
+    uint16_t nByte = 0;
+
+    while (nByte < len) {
+
+        if (!Rw) {
+            ret = setBank(3);
+            if (ret != ok) return ret;
+            write(ICM_REG_I2C_SLV4_DO, (uint8_t *) &(data[nByte]));
+            if (ret != ok) return ret;
+        }
+
+        // kick off tnx
+        ret = setBank(3);
+        if (ret != ok) return ret;
+        write(ICM_REG_I2C_SLV4_CTRL, (uint8_t *) &i2cControl);
+        if (ret != ok) return ret;
+
+        // long tsTimeout = millis() + 3000;  // Emergency timeout for txn (hard coded to 3 secs)
+        uint32_t max_cycles = 1000;
+        uint32_t count = 0;
+        bool peripheral4Done = false;
+        while (!peripheral4Done) {
+            ret = setBank(0);
+            if (ret != ok) return ret;
+
+            read(ICM_REG_I2C_SLV4_DI, (uint8_t *) &i2cMasterStatus);
+            if (ret != ok) return ret;
+
+            peripheral4Done = (i2cMasterStatus.I2C_PERIPH4_DONE /*| (millis() > tsTimeout) */); //Avoid forever-loops
+            peripheral4Done |= (count >= max_cycles);
+            count++;
+        }
+        txnFailed = (i2cMasterStatus.I2C_PERIPH4_NACK /*| (millis() > tsTimeout) */);
+        txnFailed |= (count >= max_cycles);
+        if (txnFailed) break;
+
+
+        if (Rw) {
+            ret = setBank(3);
+            if (ret != ok) return ret;
+            read(ICM_REG_I2C_SLV4_DI, &data[nByte]);
+            if (ret != ok) return ret;
+        }
+        nByte++;
+    }
+
+
+    if (txnFailed) return err;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::checkMagWhoAmI() {
+    status ret;
+
+    uint8_t whoiam1, whoiam2;
+
+    ret = readMag(ICM_MAG_REG_WHOAMI1, &whoiam1);
+    if (ret != ok) return ret;
+
+    ret = readMag(ICM_MAG_REG_WHOAMI2, &whoiam2);
+    if (ret != ok) return ret;
+
+
+    if ((whoiam1 == (ICM_MAG_WHOAMI >> 8)) && (whoiam2 == (ICM_MAG_WHOAMI & 0xFF))) {
+        return ok;
+    }
+    return wrongID;
+}
+
+ICM20948::status ICM20948::readMag(uint8_t reg, uint8_t *data) {
+    return i2cMasterSingleR(ICM_MAG_I2C_ADDR, reg, data);
+}
+
+ICM20948::status ICM20948::resetI2cMaster() {
+
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_USER_CTRL_t reg;
+    ret = read(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.I2C_MST_RST = 1; //Reset!
+
+    // write whole register back
+    ret = write(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    if (ret != ok) return ret;
+
+    return ok;
+
+
+}
+
+ICM20948::status ICM20948::writeMag(uint8_t reg, uint8_t *data) {
+    return i2cMasterSingleW(ICM_MAG_I2C_ADDR, reg, data);
+}
+
+ICM20948::status
+ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, uint8_t len, bool Rw, bool enable,
+                                 bool data_only, bool grp, bool swap, uint8_t dataOut) {
+    status ret;
+
+    uint8_t periph_addr_reg;
+    uint8_t periph_reg_reg;
+    uint8_t periph_ctrl_reg;
+    uint8_t periph_do_reg;
+
+    switch (slaveNum) {
+        case 0:
+            periph_addr_reg = ICM_REG_I2C_SLV0_ADDR;
+            periph_reg_reg = ICM_REG_I2C_SLV0_REG;
+            periph_ctrl_reg = ICM_REG_I2C_SLV0_CTRL;
+            periph_do_reg = ICM_REG_I2C_SLV0_DO;
+            break;
+        case 1:
+            periph_addr_reg = ICM_REG_I2C_SLV1_ADDR;
+            periph_reg_reg = ICM_REG_I2C_SLV1_REG;
+            periph_ctrl_reg = ICM_REG_I2C_SLV1_CTRL;
+            periph_do_reg = ICM_REG_I2C_SLV1_DO;
+            break;
+        case 2:
+            periph_addr_reg = ICM_REG_I2C_SLV2_ADDR;
+            periph_reg_reg = ICM_REG_I2C_SLV2_REG;
+            periph_ctrl_reg = ICM_REG_I2C_SLV2_CTRL;
+            periph_do_reg = ICM_REG_I2C_SLV2_DO;
+            break;
+        case 3:
+            periph_addr_reg = ICM_REG_I2C_SLV3_ADDR;
+            periph_reg_reg = ICM_REG_I2C_SLV3_REG;
+            periph_ctrl_reg = ICM_REG_I2C_SLV3_CTRL;
+            periph_do_reg = ICM_REG_I2C_SLV3_DO;
+            break;
+        default:
+            return paramErr;
+    }
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    ICM_STRUCT_I2C_SLV_ADDR_t address;
+    address.ID = addr;
+    address.RNW = Rw ? 1 : 0;
+
+
+    ret = write(periph_addr_reg, (uint8_t *) &address, sizeof(ICM_STRUCT_I2C_SLV_ADDR_t));
+    if (ret != ok) return ret;
+
+    // If we are setting up a write, configure the Data Out register too
+    if (!Rw) {
+        ICM_STRUCT_REG_I2C_SLV_DO_t dataOutByte;
+        dataOutByte.DO = dataOut;
+
+        ret = write(periph_do_reg, (uint8_t *) &dataOutByte, sizeof(ICM_STRUCT_REG_I2C_SLV_DO_t));
+        if (ret != ok) return ret;
+    }
+
+    // Set the peripheral sub-address (register address)
+    ICM_STRUCT_REG_I2C_SLV_REG_t subAddress;
+    subAddress.REG = reg;
+
+    ret = write(periph_reg_reg, (uint8_t *) &subAddress, sizeof(ICM_STRUCT_REG_I2C_SLV_REG_t));
+    if (ret != ok) return ret;
+
+    // Set up the control info
+    ICM_STRUCT_REG_I2C_SLV_CTRL_t ctrl;
+    ctrl.LENG = len;
+    ctrl.EN = enable;
+    ctrl.REG_DIS = data_only;
+    ctrl.GRP = grp;
+    ctrl.BYTE_SW = swap;
+    ret = write(periph_ctrl_reg, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_SLV_CTRL_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+

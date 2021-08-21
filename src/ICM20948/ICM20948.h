@@ -68,6 +68,33 @@ private:
 
 
     status setLowPower(bool on);
+
+    ICM20948::status setupMagnetometer(bool alsoConfigure);
+
+    status setI2cMasterPassthrough(bool passthrough);
+
+    status setI2cMasterEnable(bool enable);
+
+    status resetMag();
+
+    ICM20948::status i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data);
+
+    ICM20948::status
+    i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int len, bool Rw, bool sendRegAddr);
+
+    ICM20948::status i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data);
+
+    status checkMagWhoAmI();
+
+    ICM20948::status readMag(uint8_t reg, uint8_t *data);
+
+    status resetI2cMaster();
+
+    status writeMag(uint8_t reg, uint8_t *data);
+
+    ICM20948::status
+    i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, uint8_t len, bool Rw, bool enable,
+                           bool data_only, bool grp, bool swap, uint8_t dataOut);
 };
 
 
