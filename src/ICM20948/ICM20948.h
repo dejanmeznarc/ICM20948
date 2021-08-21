@@ -55,6 +55,8 @@ public:
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 
     // Interrupt settings
+    ICM20948::status rawDataInterrupt(void (*callback)());
+
     status setIntEnableOnRawDataReady(bool on);
 
     status setIntActiveLow(bool active_low_on);

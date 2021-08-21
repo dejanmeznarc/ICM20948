@@ -17,8 +17,13 @@ ICM20948::status conf_int_latch_status = ICM20948::unknown;
 ICM20948::status conf_int_anyre_status = ICM20948::unknown;
 
 
+unsigned long last_us = 0;
 void data_ready() {
-    Serial.println("data ready!");
+    unsigned long ts = micros();
+
+    Serial.println("data ready! " + String(ts - last_us));
+
+    last_us = ts;
 }
 
 void setup() {
@@ -44,28 +49,10 @@ void setup() {
 
     Serial.println("set interrupt");
 
-    set_int_status = imu.setIntEnableOnRawDataReady(true);
-    if (set_int_status == ICM20948::ok) Serial.println("ALL RIGHT 2");
+    set_int_status = imu.rawDataInterrupt(data_ready);
+    if (set_int_status == ICM20948::ok) Serial.println("ALL RIGHT");
     else
         Serial.println(set_int_status);
-
-    conf_int_status = imu.setIntActiveLow(true);
-    if (conf_int_status == ICM20948::ok) Serial.println("ALL RIGHT 3");
-    else
-        Serial.println(conf_int_status);
-
-    conf_int_latch_status = imu.setIntLatching(false);
-    if (conf_int_latch_status == ICM20948::ok) Serial.println("ALL RIGHT 4");
-    else
-        Serial.println(conf_int_latch_status);
-
-    conf_int_anyre_status = imu.setIntAnyRegReadClears(false);
-    if (conf_int_anyre_status == ICM20948::ok) Serial.println("ALL RIGHT 4");
-    else
-        Serial.println(conf_int_anyre_status);
-
-
-//    attachInterrupt(imu.getIntPin(), data_ready, FALLING);
 
 }
 

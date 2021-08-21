@@ -162,6 +162,26 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 }
 
 // interrupt settings
+ICM20948::status ICM20948::rawDataInterrupt(void (*callback)()) {
+    status ret;
+
+    ret = setIntEnableOnRawDataReady(true);
+    if (ret != ok) return ret;
+
+    ret = setIntActiveLow(true);
+    if (ret != ok) return ret;
+
+    ret = setIntLatching(false);
+    if (ret != ok) return ret;
+
+    ret = setIntAnyRegReadClears(true);
+    if (ret != ok) return ret;
+
+    attachInterrupt(_pin_int, callback, FALLING);
+
+    return ok;
+}
+
 ICM20948::status ICM20948::setIntEnableOnRawDataReady(bool on) {
     status ret;
 
