@@ -4,6 +4,10 @@
 
 #include "ICM20948.h"
 
+////////////////////////////////////////////////////
+/// PUBLIC METHODS                              ///
+//////////////////////////////////////////////////
+
 ICM20948::ICM20948(uint8_t pinCs, SPIClass &spiPort, uint32_t spiFreq) {
     _spi = &spiPort;
     _spiSettings = SPISettings(spiFreq, MSBFIRST, SPI_MODE_0);
@@ -43,7 +47,7 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     ret = setupMagnetometer(alsoConfigure);
     if (ret != ok) return ret;
 
-    if (!alsoConfigure) return ret;
+    if (!alsoConfigure) return ret; // TODO: isnt up to user to configure sensor?
 
     // options: ICM_20948_Sample_Mode_Continuous or ICM_20948_Sample_Mode_Cycled
     ret = setSampleMode((ICM_INTERNAL_ACC | ICM_INTERNAL_GYR), ICM_CNF_SAMPLE_MODE_CONT);
@@ -70,81 +74,6 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     return ok;
 }
 
-
-ICM20948::status ICM20948::checkWhoAmI() {
-
-    uint8_t whoami = 0x00;
-
-    setBank(0);
-    read(ICM_REG_WHO_AM_I, &whoami);
-
-    if (whoami != ICM_WHOAMI) return wrongID;
-
-    return ok;
-}
-
-
-ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
-
-    // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
-    // but it guarantees that the lines will start in the correct states even
-    // when sharing the SPI bus with devices that use other modes
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(0x00);
-    _spi->endTransaction();
-
-
-    _spi->beginTransaction(_spiSettings);
-    digitalWrite(_pin_cs, LOW);
-    //   delayMicroseconds(5);
-    _spi->transfer(((reg & 0x7F) | 0x80));
-    //  SPI.transfer(data, len); // Can't do this thanks to Arduino's stupid implementation
-    for (uint32_t i = 0; i < len; i++) {
-        *(data + i) = _spi->transfer(0x00);
-    }
-    //   delayMicroseconds(5);
-    digitalWrite(_pin_cs, HIGH);
-    _spi->endTransaction();
-
-    return ok;
-}
-
-ICM20948::status ICM20948::write(uint8_t reg, uint8_t *data, uint32_t len) {
-
-    // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
-    // but it guarantees that the lines will start in the correct states even
-    // when sharing the SPI bus with devices that use other modes
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(0x00);
-    _spi->endTransaction();
-
-    // Start procedure
-    _spi->beginTransaction(_spiSettings);
-    // Select device
-    digitalWrite(_pin_cs, LOW);
-    // Tell what register to write to
-    _spi->transfer((reg & 0x7F) | 0x00);
-    // Send all data
-    for (uint32_t i = 0; i < len; ++i) {
-        _spi->transfer(*(data + i));
-    }
-    // unselect device and stop
-    digitalWrite(_pin_cs, HIGH);
-    _spi->endTransaction();
-
-    return ok;
-}
-
-ICM20948::status ICM20948::setBank(uint8_t bank) {
-    if (bank > 3) return paramErr;
-
-    if (bank == _cur_bank) return ok;
-
-    bank = (bank << 4) & 0x30; // bits 5:4 of REG_BANK_SEL
-
-    return write(ICM_REG_BANK_SELECT, &bank, 1);
-}
-
 ICM20948::status ICM20948::reset() {
     status ret;
 
@@ -159,6 +88,39 @@ ICM20948::status ICM20948::reset() {
 
     // change needed settings
     reg.DEVICE_RESET = 1;
+
+    // write whole register back
+    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::resetMag() {
+    uint8_t SRST = 1;
+    // SRST: Soft reset
+    // “0”: Normal
+    // “1”: Reset
+    // When “1” is set, all registers are initialized. After reset, SRST bit turns to “0” automatically.
+    return i2cMasterSingleW(ICM_MAG_I2C_ADDR, ICM_MAG_REG_CNTL3, &SRST);
+}
+
+// General chip settings
+
+ICM20948::status ICM20948::setLowPower(bool on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_PWR_MGMT_1_t reg;
+    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.LP_EN = on ? 1 : 0;
 
     // write whole register back
     ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
@@ -189,7 +151,10 @@ ICM20948::status ICM20948::setSleep(bool on) {
     return ok;
 }
 
-ICM20948::status ICM20948::setLowPower(bool on) {
+ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode) {
+
+    if (!(sensors & (ICM_INTERNAL_ACC | ICM_INTERNAL_GYR | ICM_INTERNAL_MST))) return sensorNotSupported;
+
     status ret;
 
     // Set correct bank
@@ -197,18 +162,196 @@ ICM20948::status ICM20948::setLowPower(bool on) {
     if (ret != ok) return ret;
 
     // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_PWR_MGMT_1_t reg;
-    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ICM_STRUCT_REG_LP_CONFIG_t reg;
+    ret = read(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
     if (ret != ok) return ret;
 
     // change needed settings
-    reg.LP_EN = on ? 1 : 0;
+
+    if (sensors & ICM_INTERNAL_ACC) reg.ACCEL_CYCLE = cnf_sample_mode;
+    if (sensors & ICM_INTERNAL_GYR) reg.GYRO_CYCLE = cnf_sample_mode;
+    if (sensors & ICM_INTERNAL_MST) reg.I2C_MST_CYCLE = cnf_sample_mode;
+
+
 
     // write whole register back
-    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = write(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
     if (ret != ok) return ret;
 
     return ok;
+
+}
+
+
+// Gyro configuration
+ICM20948::status ICM20948::setGyrFSS(uint8_t cnf_gyr_fss) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_GYR_CONF_1_t reg;
+    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.GYRO_FS_SEL = cnf_gyr_fss;
+
+    // write whole register back
+    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setGyrDlpfConf(uint8_t cnf_gyr_dlpf) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_GYR_CONF_1_t reg;
+    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.GYRO_DLPFCFG = cnf_gyr_dlpf;
+
+    // write whole register back
+    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setGyrDlpfEnabled(bool on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_GYR_CONF_1_t reg;
+    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.GYRO_FCHOICE = on ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+
+// Accel config
+ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_ACC_CONF_1_t reg;
+    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.ACCEL_FS_SEL = cnf_acc_fss;
+
+    // write whole register back
+    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setAccDlpfConf(uint8_t cnf_acc_dlpf) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_ACC_CONF_1_t reg;
+    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.ACCEL_DLPFCFG = cnf_acc_dlpf;
+
+    // write whole register back
+    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_ACC_CONF_1_t reg;
+    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.ACCEL_FCHOICE = on ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+
+
+////////////////////////////////////////////////////
+/// PRIVATE METHODS                             ///
+//////////////////////////////////////////////////
+
+ICM20948::status ICM20948::checkWhoAmI() {
+
+    uint8_t whoami = 0x00;
+
+    setBank(0);
+    read(ICM_REG_WHO_AM_I, &whoami);
+
+    if (whoami != ICM_WHOAMI) return wrongID;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::checkMagWhoAmI() {
+    status ret;
+
+    uint8_t whoiam1, whoiam2;
+
+    ret = readMag(ICM_MAG_REG_WHOAMI1, &whoiam1);
+    if (ret != ok) return ret;
+
+    ret = readMag(ICM_MAG_REG_WHOAMI2, &whoiam2);
+    if (ret != ok) return ret;
+
+
+    if ((whoiam1 == (ICM_MAG_WHOAMI >> 8)) && (whoiam2 == (ICM_MAG_WHOAMI & 0xFF))) {
+        return ok;
+    }
+    return wrongID;
 }
 
 ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
@@ -260,27 +403,80 @@ ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
     return ok;
 }
 
-ICM20948::status ICM20948::setI2cMasterPassthrough(bool passthrough) {
-    status ret;
 
-    // Set correct bank
-    ret = setBank(0);
-    if (ret != ok) return ret;
+// Read/write functions to registers
 
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_INT_PIN_CNFG_t reg;
-    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
-    if (ret != ok) return ret;
+ICM20948::status ICM20948::setBank(uint8_t bank) {
+    if (bank > 3) return paramErr;
 
-    // change needed settings
-    reg.BYPASS_EN = passthrough ? 1 : 0;
+    if (bank == _cur_bank) return ok;
 
-    // write whole register back
-    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
-    if (ret != ok) return ret;
+    bank = (bank << 4) & 0x30; // bits 5:4 of REG_BANK_SEL
+
+    return write(ICM_REG_BANK_SELECT, &bank, 1);
+}
+
+ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
+
+    // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
+    // but it guarantees that the lines will start in the correct states even
+    // when sharing the SPI bus with devices that use other modes
+    _spi->beginTransaction(_spiSettings);
+    _spi->transfer(0x00);
+    _spi->endTransaction();
+
+
+    _spi->beginTransaction(_spiSettings);
+    digitalWrite(_pin_cs, LOW);
+    //   delayMicroseconds(5);
+    _spi->transfer(((reg & 0x7F) | 0x80));
+    //  SPI.transfer(data, len); // Can't do this thanks to Arduino's stupid implementation
+    for (uint32_t i = 0; i < len; i++) {
+        *(data + i) = _spi->transfer(0x00);
+    }
+    //   delayMicroseconds(5);
+    digitalWrite(_pin_cs, HIGH);
+    _spi->endTransaction();
 
     return ok;
 }
+
+ICM20948::status ICM20948::readMag(uint8_t reg, uint8_t *data) {
+    return i2cMasterSingleR(ICM_MAG_I2C_ADDR, reg, data);
+}
+
+ICM20948::status ICM20948::write(uint8_t reg, uint8_t *data, uint32_t len) {
+
+    // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
+    // but it guarantees that the lines will start in the correct states even
+    // when sharing the SPI bus with devices that use other modes
+    _spi->beginTransaction(_spiSettings);
+    _spi->transfer(0x00);
+    _spi->endTransaction();
+
+    // Start procedure
+    _spi->beginTransaction(_spiSettings);
+    // Select device
+    digitalWrite(_pin_cs, LOW);
+    // Tell what register to write to
+    _spi->transfer((reg & 0x7F) | 0x00);
+    // Send all data
+    for (uint32_t i = 0; i < len; ++i) {
+        _spi->transfer(*(data + i));
+    }
+    // unselect device and stop
+    digitalWrite(_pin_cs, HIGH);
+    _spi->endTransaction();
+
+    return ok;
+}
+
+ICM20948::status ICM20948::writeMag(uint8_t reg, uint8_t *data) {
+    return i2cMasterSingleW(ICM_MAG_I2C_ADDR, reg, data);
+}
+
+
+// I2c config for access of magnetometer
 
 ICM20948::status ICM20948::setI2cMasterEnable(bool enable) {
     status ret;
@@ -321,13 +517,29 @@ ICM20948::status ICM20948::setI2cMasterEnable(bool enable) {
     return ICM20948::ok;
 }
 
-ICM20948::status ICM20948::resetMag() {
-    uint8_t SRST = 1;
-    // SRST: Soft reset
-    // “0”: Normal
-    // “1”: Reset
-    // When “1” is set, all registers are initialized. After reset, SRST bit turns to “0” automatically.
-    return i2cMasterSingleW(ICM_MAG_I2C_ADDR, ICM_MAG_REG_CNTL3, &SRST);
+ICM20948::status ICM20948::resetI2cMaster() {
+
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_USER_CTRL_t reg;
+    ret = read(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.I2C_MST_RST = 1; //Reset!
+
+    // write whole register back
+    ret = write(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    if (ret != ok) return ret;
+
+    return ok;
+
+
 }
 
 ICM20948::status ICM20948::i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data) {
@@ -338,6 +550,28 @@ ICM20948::status ICM20948::i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *
     return i2cControllerTransaction(addr, reg, data, 1, true, true);
 }
 
+
+ICM20948::status ICM20948::setI2cMasterPassthrough(bool passthrough) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_INT_PIN_CNFG_t reg;
+    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.BYPASS_EN = passthrough ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
 
 ICM20948::status
 ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int len, bool Rw, bool sendRegAddr) {
@@ -416,57 +650,6 @@ ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int
     if (txnFailed) return err;
 
     return ok;
-}
-
-ICM20948::status ICM20948::checkMagWhoAmI() {
-    status ret;
-
-    uint8_t whoiam1, whoiam2;
-
-    ret = readMag(ICM_MAG_REG_WHOAMI1, &whoiam1);
-    if (ret != ok) return ret;
-
-    ret = readMag(ICM_MAG_REG_WHOAMI2, &whoiam2);
-    if (ret != ok) return ret;
-
-
-    if ((whoiam1 == (ICM_MAG_WHOAMI >> 8)) && (whoiam2 == (ICM_MAG_WHOAMI & 0xFF))) {
-        return ok;
-    }
-    return wrongID;
-}
-
-ICM20948::status ICM20948::readMag(uint8_t reg, uint8_t *data) {
-    return i2cMasterSingleR(ICM_MAG_I2C_ADDR, reg, data);
-}
-
-ICM20948::status ICM20948::resetI2cMaster() {
-
-    status ret;
-
-    // Set correct bank
-    ret = setBank(0);
-    if (ret != ok) return ret;
-
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_USER_CTRL_t reg;
-    ret = read(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
-    if (ret != ok) return ret;
-
-    // change needed settings
-    reg.I2C_MST_RST = 1; //Reset!
-
-    // write whole register back
-    ret = write(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
-    if (ret != ok) return ret;
-
-    return ok;
-
-
-}
-
-ICM20948::status ICM20948::writeMag(uint8_t reg, uint8_t *data) {
-    return i2cMasterSingleW(ICM_MAG_I2C_ADDR, reg, data);
 }
 
 ICM20948::status
@@ -549,169 +732,20 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     return ok;
 }
 
-ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode) {
-
-    if (!(sensors & (ICM_INTERNAL_ACC | ICM_INTERNAL_GYR | ICM_INTERNAL_MST))) return sensorNotSupported;
-
-    status ret;
-
-    // Set correct bank
-    ret = setBank(0);
-    if (ret != ok) return ret;
-
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_LP_CONFIG_t reg;
-    ret = read(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
-    if (ret != ok) return ret;
-
-    // change needed settings
-
-    if (sensors & ICM_INTERNAL_ACC) reg.ACCEL_CYCLE = cnf_sample_mode;
-    if (sensors & ICM_INTERNAL_GYR) reg.GYRO_CYCLE = cnf_sample_mode;
-    if (sensors & ICM_INTERNAL_MST) reg.I2C_MST_CYCLE = cnf_sample_mode;
 
 
 
-    // write whole register back
-    ret = write(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
-    if (ret != ok) return ret;
-
-    return ok;
-
-}
-
-ICM20948::status ICM20948::setGyrFSS(uint8_t cnf_gyr_fss) {
-    status ret;
-
-    // Set correct bank
-    ret = setBank(2);
-    if (ret != ok) return ret;
-
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_GYR_CONF_1_t reg;
-    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
-    if (ret != ok) return ret;
-
-    // change needed settings
-    reg.GYRO_FS_SEL = cnf_gyr_fss;
-
-    // write whole register back
-    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
-    if (ret != ok) return ret;
-
-    return ok;
-}
-
-ICM20948::status ICM20948::setGyrDlpfConf(uint8_t cnf_gyr_dlpf) {
-    status ret;
-
-    // Set correct bank
-    ret = setBank(2);
-    if (ret != ok) return ret;
-
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_GYR_CONF_1_t reg;
-    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
-    if (ret != ok) return ret;
-
-    // change needed settings
-    reg.GYRO_DLPFCFG = cnf_gyr_dlpf;
-
-    // write whole register back
-    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
-    if (ret != ok) return ret;
-
-    return ok;
-}
-
-ICM20948::status ICM20948::setGyrDlpfEnabled(bool on) {
-    status ret;
-
-    // Set correct bank
-    ret = setBank(2);
-    if (ret != ok) return ret;
-
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_GYR_CONF_1_t reg;
-    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
-    if (ret != ok) return ret;
-
-    // change needed settings
-    reg.GYRO_FCHOICE = on ? 1 : 0;
-
-    // write whole register back
-    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
-    if (ret != ok) return ret;
-
-    return ok;
-}
-
-ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
-    status ret;
-
-    // Set correct bank
-    ret = setBank(2);
-    if (ret != ok) return ret;
-
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_ACC_CONF_1_t reg;
-    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
-    if (ret != ok) return ret;
-
-    // change needed settings
-    reg.ACCEL_FS_SEL = cnf_acc_fss;
-
-    // write whole register back
-    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
-    if (ret != ok) return ret;
-
-    return ok;
-}
 
 
-ICM20948::status ICM20948::setAccDlpfConf(uint8_t cnf_acc_dlpf) {
-    status ret;
 
-    // Set correct bank
-    ret = setBank(2);
-    if (ret != ok) return ret;
 
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_ACC_CONF_1_t reg;
-    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
-    if (ret != ok) return ret;
 
-    // change needed settings
-    reg.ACCEL_DLPFCFG = cnf_acc_dlpf;
 
-    // write whole register back
-    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
-    if (ret != ok) return ret;
 
-    return ok;
-}
 
-ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
-    status ret;
 
-    // Set correct bank
-    ret = setBank(2);
-    if (ret != ok) return ret;
 
-    // Get previous settings from register, to change only required settings
-    ICM_STRUCT_REG_ACC_CONF_1_t reg;
-    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
-    if (ret != ok) return ret;
 
-    // change needed settings
-    reg.ACCEL_FCHOICE = on ? 1 : 0;
-
-    // write whole register back
-    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
-    if (ret != ok) return ret;
-
-    return ok;
-}
 
 
 

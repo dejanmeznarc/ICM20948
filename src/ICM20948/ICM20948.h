@@ -40,7 +40,36 @@ public:
     explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000);
 
 
-    ICM20948::status begin(bool alsoConfigure);
+    status begin(bool alsoConfigure);
+
+    // Chip resets
+    status reset();
+
+    status resetMag();
+
+
+    // General chip settings
+    status setLowPower(bool on);
+
+    status setSleep(bool on);
+
+    status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
+
+
+    // Gyro configuration
+    status setGyrFSS(uint8_t cnf_gyr_fss);
+
+    status setGyrDlpfConf(uint8_t cnf_gyr_dlpf);
+
+    status setGyrDlpfEnabled(bool on);
+
+
+    // Accel config
+    status setAccFSS(uint8_t cnf_acc_fss);
+
+    status setAccDlpfConf(uint8_t cnf_acc_dlpf);
+
+    status setAccDlpfEnabled(bool on);
 
 
 private:
@@ -54,61 +83,43 @@ private:
     uint8_t _cur_bank = 255; // bank 255 doesnt exists, set it as init
 
 
+    // other functions that set some settings
     status checkWhoAmI();
-
-    status reset();
-
-    status setSleep(bool on);
-
-    status read(uint8_t reg, uint8_t *data, uint32_t len = 1);
-
-    status write(uint8_t reg, uint8_t *data, uint32_t len = 1);
-
-    status setBank(uint8_t bank);
-
-
-    status setLowPower(bool on);
-
-    ICM20948::status setupMagnetometer(bool alsoConfigure);
-
-    status setI2cMasterPassthrough(bool passthrough);
-
-    status setI2cMasterEnable(bool enable);
-
-    status resetMag();
-
-    ICM20948::status i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data);
-
-    ICM20948::status
-    i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int len, bool Rw, bool sendRegAddr);
-
-    ICM20948::status i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data);
 
     status checkMagWhoAmI();
 
-    ICM20948::status readMag(uint8_t reg, uint8_t *data);
+    status setupMagnetometer(bool alsoConfigure);
 
-    status resetI2cMaster();
+
+    // Read and write functions to registers
+    status setBank(uint8_t bank);
+
+    status read(uint8_t reg, uint8_t *data, uint32_t len = 1);
+
+    status readMag(uint8_t reg, uint8_t *data);
+
+    status write(uint8_t reg, uint8_t *data, uint32_t len = 1);
 
     status writeMag(uint8_t reg, uint8_t *data);
 
-    ICM20948::status
-    i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, uint8_t len, bool Rw, bool enable,
-                           bool data_only, bool grp, bool swap, uint8_t dataOut);
 
-    status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
+    // I2C configuration for accessing mag
+    status setI2cMasterEnable(bool enable);
 
-    status setGyrFSS(uint8_t cnf_gyr_fss);
+    status resetI2cMaster();
 
-    status setAccFSS(uint8_t cnf_acc_fss);
+    status i2cMasterSingleW(uint8_t addr, uint8_t reg, uint8_t *data);
 
-    status setGyrDlpfConf(uint8_t cnf_gyr_dlpf);
+    status i2cMasterSingleR(uint8_t addr, uint8_t reg, uint8_t *data);
 
-    status setAccDlpfConf(uint8_t cnf_acc_dlpf);
+    status setI2cMasterPassthrough(bool passthrough);
 
-    status setGyrDlpfEnabled(bool on);
+    status i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, uint8_t len, bool Rw, bool enable,
+                                  bool data_only, bool grp, bool swap, uint8_t dataOut);
 
-    status setAccDlpfEnabled(bool on);
+    status i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int len, bool Rw, bool sendRegAddr);
+
+
 };
 
 
