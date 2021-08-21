@@ -101,6 +101,10 @@ private:
     status setGyrFSS(uint8_t cnf_gyr_fss);
 
     status setAccFSS(uint8_t cnf_acc_fss);
+
+    status setGyrDlpfConf(uint8_t cnf_gyr_dlpf);
+
+    status setAccDlpfConf(uint8_t cnf_acc_dlpf);
 };
 
 
