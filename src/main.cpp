@@ -28,7 +28,7 @@ void setup() {
 
 // write your initialization code here
     Serial.println("init of imu");
-    last_status = imu.begin();
+    last_status = imu.begin(true);
     if (last_status == ICM20948::ok) Serial.println("ALL RIGHT");
     else
         Serial.println(last_status);

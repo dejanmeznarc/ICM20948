@@ -61,10 +61,6 @@ typedef struct {
 
 
 
-
-
-
-
 // aka AGB3_REG_I2C_PERIPH4_ADDR
 #define ICM_REG_I2C_SLV0_ADDR 0x03
 #define ICM_REG_I2C_SLV1_ADDR 0x07
@@ -137,6 +133,30 @@ typedef struct {
 typedef struct {
     uint8_t DO;
 } ICM_STRUCT_REG_I2C_SLV_DO_t;
+
+
+#define ICM_INTERNAL_ACC (1 << 0)
+#define ICM_INTERNAL_GYR (1 << 1)
+#define ICM_INTERNAL_MAG (1 << 2)
+#define ICM_INTERNAL_TMP (1 << 3)
+#define ICM_INTERNAL_MST (1 <<4 ) // internal i2c maser
+
+
+// aka AGB0_REG_LP_CONFIG, ICM_20948_LP_CONFIG_t
+#define ICM_REG_LP_CONFIG 0x05
+typedef struct {
+    uint8_t reserved_0: 4;
+    uint8_t GYRO_CYCLE: 1;
+    uint8_t ACCEL_CYCLE: 1;
+    uint8_t I2C_MST_CYCLE: 1;
+    uint8_t reserved_1: 1;
+} ICM_STRUCT_REG_LP_CONFIG_t;
+
+
+#define ICM_CNF_SAMPLE_MODE_CONT 0x00
+#define ICM_CNF_SAMPLE_MODE_CYCLE 0x01
+
+
 
 
 

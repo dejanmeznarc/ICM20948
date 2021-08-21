@@ -40,7 +40,7 @@ public:
     explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000);
 
 
-    status begin();
+    ICM20948::status begin(bool alsoConfigure);
 
 
 private:
@@ -95,6 +95,8 @@ private:
     ICM20948::status
     i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, uint8_t len, bool Rw, bool enable,
                            bool data_only, bool grp, bool swap, uint8_t dataOut);
+
+    status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 };
 
 

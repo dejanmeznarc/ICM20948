@@ -10,7 +10,9 @@ ICM20948::ICM20948(uint8_t pinCs, SPIClass &spiPort, uint32_t spiFreq) {
     _pin_cs = pinCs;
 }
 
-ICM20948::status ICM20948::begin() {
+ICM20948::status ICM20948::begin(bool alsoConfigure) {
+
+
     status ret;
 
     pinMode(_pin_cs, OUTPUT);
@@ -40,7 +42,13 @@ ICM20948::status ICM20948::begin() {
     if (ret != ok) return ret;
 
     // wake up
-    ret = setupMagnetometer(true);
+    ret = setupMagnetometer(alsoConfigure);
+    if (ret != ok) return ret;
+
+    if (!alsoConfigure) return ret;
+
+    // options: ICM_20948_Sample_Mode_Continuous or ICM_20948_Sample_Mode_Cycled
+    ret = setSampleMode((ICM_INTERNAL_ACC | ICM_INTERNAL_GYR), ICM_CNF_SAMPLE_MODE_CONT);
     if (ret != ok) return ret;
 
 
@@ -524,5 +532,36 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     if (ret != ok) return ret;
 
     return ok;
+}
+
+ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode) {
+
+    if (!(sensors & (ICM_INTERNAL_ACC | ICM_INTERNAL_GYR | ICM_INTERNAL_MST))) return sensorNotSupported;
+
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_LP_CONFIG_t reg;
+    ret = read(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+
+    if (sensors & ICM_INTERNAL_ACC) reg.ACCEL_CYCLE = cnf_sample_mode;
+    if (sensors & ICM_INTERNAL_GYR) reg.GYRO_CYCLE = cnf_sample_mode;
+    if (sensors & ICM_INTERNAL_MST) reg.I2C_MST_CYCLE = cnf_sample_mode;
+
+
+
+    // write whole register back
+    ret = write(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
+    if (ret != ok) return ret;
+
+    return ok;
+
 }
 
