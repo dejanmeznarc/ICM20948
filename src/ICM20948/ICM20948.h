@@ -46,6 +46,10 @@ public:
 
     status resetMag();
 
+    status autoFetchData(bool enable);
+
+    void autoFetchCallback();
+
 
     // General chip settings
     status setLowPower(bool on);
@@ -55,7 +59,7 @@ public:
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 
     // Interrupt settings
-    ICM20948::status rawDataInterrupt(void (*callback)());
+    status rawDataInterrupt(void (*callback)());
 
     status setIntEnableOnRawDataReady(bool on);
 

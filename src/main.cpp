@@ -49,7 +49,7 @@ void setup() {
 
     Serial.println("set interrupt");
 
-    set_int_status = imu.rawDataInterrupt(data_ready);
+    set_int_status = imu.autoFetchData(true);
     if (set_int_status == ICM20948::ok) Serial.println("ALL RIGHT");
     else
         Serial.println(set_int_status);

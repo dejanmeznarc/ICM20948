@@ -15,6 +15,9 @@ ICM20948::ICM20948(uint8_t pinCs, SPIClass &spiPort, uint32_t spiFreq, uint8_t p
     _pin_int = pinInterrupt;
 }
 
+
+// High level functions
+
 ICM20948::status ICM20948::begin(bool alsoConfigure) {
     status ret;
 
@@ -83,6 +86,41 @@ ICM20948::status ICM20948::resetMag() {
     // When “1” is set, all registers are initialized. After reset, SRST bit turns to “0” automatically.
     return i2cMasterSingleW(ICM_MAG_I2C_ADDR, ICM_MAG_REG_CNTL3, &SRST);
 }
+
+ICM20948::status ICM20948::autoFetchData(bool enable) {
+    if (enable) {
+        status ret;
+
+        ret = setIntEnableOnRawDataReady(true);
+        if (ret != ok) return ret;
+
+        ret = setIntActiveLow(true);
+        if (ret != ok) return ret;
+
+        ret = setIntLatching(false);
+        if (ret != ok) return ret;
+
+        ret = setIntAnyRegReadClears(true);
+        if (ret != ok) return ret;
+
+        // Magic call: https://github.com/arduino/ArduinoCore-API/issues/99#issuecomment-582855604
+        attachInterrupt(_pin_int, [this] { autoFetchCallback(); }, FALLING);
+
+    } else {
+        // TODO: reset changed settings to default
+        detachInterrupt(_pin_int);
+    }
+
+    return ok;
+}
+
+
+void ICM20948::autoFetchCallback() {
+    Serial.println("CALL BACK !! YEY");
+    //TODO: read data and put it into class memory
+}
+
+
 
 // General chip settings
 
@@ -181,6 +219,7 @@ ICM20948::status ICM20948::rawDataInterrupt(void (*callback)()) {
 
     return ok;
 }
+
 
 ICM20948::status ICM20948::setIntEnableOnRawDataReady(bool on) {
     status ret;
@@ -853,10 +892,6 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
 
     return ok;
 }
-
-
-
-
 
 
 
