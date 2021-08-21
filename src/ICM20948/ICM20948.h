@@ -105,6 +105,10 @@ private:
     status setGyrDlpfConf(uint8_t cnf_gyr_dlpf);
 
     status setAccDlpfConf(uint8_t cnf_acc_dlpf);
+
+    status setGyrDlpfEnabled(bool on);
+
+    status setAccDlpfEnabled(bool on);
 };
 
 

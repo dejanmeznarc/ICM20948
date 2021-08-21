@@ -11,8 +11,6 @@ ICM20948::ICM20948(uint8_t pinCs, SPIClass &spiPort, uint32_t spiFreq) {
 }
 
 ICM20948::status ICM20948::begin(bool alsoConfigure) {
-
-
     status ret;
 
     pinMode(_pin_cs, OUTPUT);
@@ -51,16 +49,21 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     ret = setSampleMode((ICM_INTERNAL_ACC | ICM_INTERNAL_GYR), ICM_CNF_SAMPLE_MODE_CONT);
     if (ret != ok) return ret;
 
+    // Configure gyro
     ret = setGyrFSS(ICM_CNF_GYR_FSS_DPS250);
     if (ret != ok) return ret;
-
-    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
-    if (ret != ok) return ret;
-
     ret = setGyrDlpfConf(ICM_CNF_GYR_DLPF_D361BW4_N376BW5);
     if (ret != ok) return ret;
+    ret = setGyrDlpfEnabled(false);
+    if (ret != ok) return ret;
 
+
+    //Configure accel
+    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
+    if (ret != ok) return ret;
     ret = setAccDlpfConf(ICM_CNF_ACC_DLPF_D473BW_N499BW);
+    if (ret != ok) return ret;
+    ret = setAccDlpfEnabled(false);
     if (ret != ok) return ret;
 
 
@@ -621,6 +624,27 @@ ICM20948::status ICM20948::setGyrDlpfConf(uint8_t cnf_gyr_dlpf) {
     return ok;
 }
 
+ICM20948::status ICM20948::setGyrDlpfEnabled(bool on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_GYR_CONF_1_t reg;
+    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.GYRO_FCHOICE = on ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
 
 ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
     status ret;
@@ -659,6 +683,28 @@ ICM20948::status ICM20948::setAccDlpfConf(uint8_t cnf_acc_dlpf) {
 
     // change needed settings
     reg.ACCEL_DLPFCFG = cnf_acc_dlpf;
+
+    // write whole register back
+    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_ACC_CONF_1_t reg;
+    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.ACCEL_FCHOICE = on ? 1 : 0;
 
     // write whole register back
     ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
