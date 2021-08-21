@@ -13,6 +13,7 @@ ICM20948 imu(IMU_CS, SPI, 7000000, IMU_INT);
 ICM20948::status begin_status = ICM20948::unknown;
 ICM20948::status set_int_status = ICM20948::unknown;
 ICM20948::status conf_int_status = ICM20948::unknown;
+ICM20948::status conf_int_latch_status = ICM20948::unknown;
 
 
 void data_ready() {
@@ -52,6 +53,10 @@ void setup() {
     else
         Serial.println(conf_int_status);
 
+    conf_int_latch_status = imu.setIntLatching(false);
+    if (conf_int_latch_status == ICM20948::ok) Serial.println("ALL RIGHT 4");
+    else
+        Serial.println(conf_int_latch_status);
 
 
 
@@ -81,6 +86,12 @@ void loop() {
     else {
         Serial.print("conf int status is NOT OK: error=");
         Serial.println(conf_int_status);
+    }
+
+    if (conf_int_latch_status == ICM20948::ok) Serial.println("conf_int_latch_status status: ok");
+    else {
+        Serial.print("conf_int_latch_status is NOT OK: error=");
+        Serial.println(conf_int_latch_status);
     }
 
 

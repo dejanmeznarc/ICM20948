@@ -59,6 +59,9 @@ public:
 
     status setIntActiveLow(bool active_low_on);
 
+    status setIntLatching(bool en_lathcing);// If not latching then the interrupt is a 50 us pulse
+
+
 
     // Gyro configuration
     status setGyrFss(uint8_t cnf_gyr_fss);

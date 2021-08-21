@@ -210,6 +210,30 @@ ICM20948::status ICM20948::setIntActiveLow(bool active_low_on) {
     return ok;
 }
 
+
+ICM20948::status ICM20948::setIntLatching(bool en_lathcing) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // Get previous settings from register, to change only required settings
+    ICM_STRUCT_REG_INT_PIN_CONF_t reg;
+    ret = read(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    if (ret != ok) return ret;
+
+    // change needed settings
+    reg.INT1_LATCH_EN = en_lathcing ? 1 : 0;
+
+    // write whole register back
+    ret = write(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+
 uint8_t ICM20948::getIntPin() const {
     return _pin_int;
 }
