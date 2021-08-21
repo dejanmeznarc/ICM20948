@@ -59,7 +59,7 @@ public:
 
     status setIntActiveLow(bool active_low_on);
 
-    status setIntLatching(bool en_lathcing);// If not latching then the interrupt is a 50 us pulse
+    status setIntLatching(bool en_latching);// If not latching then the interrupt is a 50 us pulse
     // If enabled, *ANY* read will clear the INT_STATUS register. So if you have multiple interrupt sources enabled be sure to read INT_STATUS first
     status setIntAnyRegReadClears(bool on);
 
