@@ -49,29 +49,7 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
 
     if (!alsoConfigure) return ret; // TODO: isnt up to user to configure sensor?
 
-    // options: ICM_20948_Sample_Mode_Continuous or ICM_20948_Sample_Mode_Cycled
-    ret = setSampleMode((ICM_INTERNAL_ACC | ICM_INTERNAL_GYR), ICM_CNF_SAMPLE_MODE_CONT);
-    if (ret != ok) return ret;
-
-    // Configure gyro
-    ret = setGyrFss(ICM_CNF_GYR_FSS_DPS250);
-    if (ret != ok) return ret;
-    ret = setGyrDlpfConf(ICM_CNF_GYR_DLPF_D361BW4_N376BW5);
-    if (ret != ok) return ret;
-    ret = setGyrDlpfEnabled(false);
-    if (ret != ok) return ret;
-
-
-    //Configure accel
-    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
-    if (ret != ok) return ret;
-    ret = setAccDlpfConf(ICM_CNF_ACC_DLPF_D473BW_N499BW);
-    if (ret != ok) return ret;
-    ret = setAccDlpfEnabled(false);
-    if (ret != ok) return ret;
-
-
-    return ok;
+    return setDefaultConfig();
 }
 
 ICM20948::status ICM20948::reset() {
@@ -399,6 +377,32 @@ ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
     ret = i2cControllerConfigure(0, ICM_MAG_I2C_ADDR, ICM_MAG_REG_ST1, 9, true, true, false, false, false, 0);
     if (ret != ok) return ret;
 
+
+    return ok;
+}
+
+ICM20948::status ICM20948::setDefaultConfig() {
+    status ret;
+    // options: ICM_20948_Sample_Mode_Continuous or ICM_20948_Sample_Mode_Cycled
+    ret = setSampleMode((ICM_INTERNAL_ACC | ICM_INTERNAL_GYR), ICM_CNF_SAMPLE_MODE_CONT);
+    if (ret != ok) return ret;
+
+    // Configure gyro
+    ret = setGyrFss(ICM_CNF_GYR_FSS_DPS250);
+    if (ret != ok) return ret;
+    ret = setGyrDlpfConf(ICM_CNF_GYR_DLPF_D361BW4_N376BW5);
+    if (ret != ok) return ret;
+    ret = setGyrDlpfEnabled(false);
+    if (ret != ok) return ret;
+
+
+    //Configure accel
+    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
+    if (ret != ok) return ret;
+    ret = setAccDlpfConf(ICM_CNF_ACC_DLPF_D473BW_N499BW);
+    if (ret != ok) return ret;
+    ret = setAccDlpfEnabled(false);
+    if (ret != ok) return ret;
 
     return ok;
 }
@@ -731,6 +735,7 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
 
     return ok;
 }
+
 
 
 

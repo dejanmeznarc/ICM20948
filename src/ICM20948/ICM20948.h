@@ -90,6 +90,8 @@ private:
 
     status setupMagnetometer(bool alsoConfigure);
 
+    status setDefaultConfig();
+
 
     // Read and write functions to registers
     status setBank(uint8_t bank);
