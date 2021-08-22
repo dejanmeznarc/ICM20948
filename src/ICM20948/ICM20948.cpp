@@ -106,7 +106,7 @@ ICM20948::status ICM20948::autoFetchData(bool enable) {
         // TODO it doesnt work with high sample rates on low speed processors!
 
         // Magic call: https://github.com/arduino/ArduinoCore-API/issues/99#issuecomment-582855604
-        attachInterrupt(_pin_int, [this] { dataAvailable = true; }, FALLING);
+        attachInterrupt(_pin_int, [this] { read(); }, FALLING);
 
     } else {
         // TODO: reset changed settings to default
@@ -511,9 +511,6 @@ ICM20948::status ICM20948::readRawData() {
 
 
 void ICM20948::convertRawData() {
-
-    newRawData = false;
-
     data.gyr.x = getGyrDPS(rawData.gyr.axis.x);
     data.gyr.y = getGyrDPS(rawData.gyr.axis.y);
     data.gyr.z = getGyrDPS(rawData.gyr.axis.z);
@@ -1016,7 +1013,6 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
 }
 
 ICM_converted_data_t ICM20948::getData() {
-    if (newRawData) convertRawData();
     return data;
 }
 

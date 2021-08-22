@@ -95,11 +95,8 @@ public:
     status setAccDlpfEnabled(bool on);
 
 
-    bool dataAvailable = false;
 
-    bool newRawData = false;
     ICM_raw_data_t rawData;
-    bool newData = true;
     ICM_converted_data_t data;
 
 private:

@@ -70,10 +70,6 @@ void setup() {
 }
 
 void loop() {
-    if (imu.dataAvailable) {
-        Serial.println("new dat");
-    }
-
 
 
 }
