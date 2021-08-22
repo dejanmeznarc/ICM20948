@@ -37,8 +37,8 @@ public:
     };
 
 
-    ICM_data_raw_t dataRaw;
-    ICM_data_converted_t dataConverted;
+    ICM_data_raw_t dataRaw{};
+    ICM_data_converted_t dataConverted{};
 
 
     explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000, uint8_t pinInterrupt = 0);
@@ -88,7 +88,7 @@ public:
 
 
     // Accel config
-    status setAccFSS(uint8_t cnf_acc_fss);
+    status setAccFss(uint8_t cnf_acc_fss);
 
     status setAccDlpfConf(uint8_t cnf_acc_dlpf);
 

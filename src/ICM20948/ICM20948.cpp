@@ -378,7 +378,7 @@ ICM20948::status ICM20948::setGyrDlpfEnabled(bool on) {
 
 
 // Accel config
-ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
+ICM20948::status ICM20948::setAccFss(uint8_t cnf_acc_fss) {
     status ret;
 
     // Set correct bank
@@ -650,7 +650,7 @@ ICM20948::status ICM20948::setDefaultConfig() {
 
 
     //Configure accel
-    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
+    ret = setAccFss(ICM_CNF_ACC_FSS_GMP2);
     if (ret != ok) return ret;
     ret = setAccDlpfConf(ICM_CNF_ACC_DLPF_D473BW_N499BW);
     if (ret != ok) return ret;
