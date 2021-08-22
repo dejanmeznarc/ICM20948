@@ -1,6 +1,9 @@
 //
-// Created by dejan on 20/08/2021.
+// Copyright (c) Dejan 2021.
 //
+
+
+
 
 #ifndef ICM20948_ICM20948_H
 #define ICM20948_ICM20948_H

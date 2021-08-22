@@ -1,3 +1,7 @@
+//
+// Copyright (c) Dejan 2021.
+//
+
 #include <Arduino.h>
 #include <ICM20948/ICM20948.h>
 
@@ -53,7 +57,7 @@ void loop() {
     imu.read();
     imu2.read();
     Serial.println(String(imu.dataRaw.gyr.axis.x) + " -> " + String(imu.dataConverted.gyr.x)
-                   + " | " + String(imu2.dataRaw.gyr.axis.x) + " -> " + String(imu2.dataConverted.gyr.x));
+                                                             + " | " + String(imu2.dataRaw.gyr.axis.x) + " -> " + String(imu2.dataConverted.gyr.x));
 
 
 }
