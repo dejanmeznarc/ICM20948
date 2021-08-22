@@ -41,6 +41,8 @@ public:
 
     status begin(bool alsoConfigure);
 
+    status read();
+
     // Chip resets
     status reset();
 
@@ -86,6 +88,9 @@ public:
 
     uint8_t getIntPin() const;
 
+    ICM_data_raw_t dataRaw;
+    ICM_data_converted_t dataConverted;
+
 private:
 
 
@@ -94,9 +99,22 @@ private:
     SPIClass *_spi;
     SPISettings _spiSettings;
 
-
+    uint8_t _gyr_fss = 255;
+    uint8_t _acc_fss = 255;
     uint8_t _cur_bank = 255; // bank 255 doesnt exists, set it as init
 
+
+    status readRawData();
+
+    void convertRawData();
+
+    double getGyrDPS(int16_t raw) const;
+
+    double getAccMG(int16_t raw) const;
+
+    static double getTempC(int16_t raw);
+
+    static double getMagUT(int16_t raw);
 
     // other functions that set some settings
     status checkWhoAmI();
@@ -111,13 +129,13 @@ private:
     // Read and write functions to registers
     status setBank(uint8_t bank);
 
-    status read(uint8_t reg, uint8_t *data, uint32_t len = 1);
+    status regRead(uint8_t reg, uint8_t *data, uint32_t len = 1);
 
-    status readMag(uint8_t reg, uint8_t *data);
+    status regReadMag(uint8_t reg, uint8_t *data);
 
-    status write(uint8_t reg, uint8_t *data, uint32_t len = 1);
+    status regWrite(uint8_t reg, uint8_t *data, uint32_t len = 1);
 
-    status writeMag(uint8_t reg, uint8_t *data);
+    status regWriteMag(uint8_t reg, uint8_t *data);
 
 
     // I2C configuration for accessing mag

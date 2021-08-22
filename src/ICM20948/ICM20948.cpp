@@ -53,6 +53,18 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     return setDefaultConfig();
 }
 
+ICM20948::status ICM20948::read() {
+    status ret;
+
+    ret = readRawData();
+    if (ret != ok) return ret;
+
+
+    convertRawData();
+    return ok;
+}
+
+
 ICM20948::status ICM20948::reset() {
     status ret;
 
@@ -62,14 +74,14 @@ ICM20948::status ICM20948::reset() {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_PWR_MGMT_1_t reg;
-    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = regRead(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.DEVICE_RESET = 1;
 
     // write whole register back
-    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = regWrite(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -95,14 +107,14 @@ ICM20948::status ICM20948::setLowPower(bool on) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_PWR_MGMT_1_t reg;
-    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = regRead(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.LP_EN = on ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = regWrite(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -117,14 +129,14 @@ ICM20948::status ICM20948::setSleep(bool on) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_PWR_MGMT_1_t reg;
-    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = regRead(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.SLEEP = on ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
+    ret = regWrite(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_PWR_MGMT_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -142,7 +154,7 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_LP_CONFIG_t reg;
-    ret = read(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
+    ret = regRead(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
     if (ret != ok) return ret;
 
     // change needed settings
@@ -154,7 +166,7 @@ ICM20948::status ICM20948::setSampleMode(uint8_t sensors, uint8_t cnf_sample_mod
 
 
     // write whole register back
-    ret = write(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
+    ret = regWrite(ICM_REG_LP_CONFIG, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_LP_CONFIG_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -193,14 +205,14 @@ ICM20948::status ICM20948::setIntEnableOnRawDataReady(bool on) {
     regIntEnable1.RAW_DATA_0_RDY_EN = on ? 1 : 0;
     regIntEnable1.reserved_0 = 0; // clear RAM garbage
 
-    ret = write(ICM_REG_INT_ENABLE_1, (uint8_t *) &regIntEnable1, sizeof(ICM_STRUCT_REG_INT_ENABLE_1_t));
+    ret = regWrite(ICM_REG_INT_ENABLE_1, (uint8_t *) &regIntEnable1, sizeof(ICM_STRUCT_REG_INT_ENABLE_1_t));
     if (ret != ok) return ret;
 
     // wait 1us, so imu can write data
     delayMicroseconds(1);
 
     // read back same register to verify written;
-    ret = read(ICM_REG_INT_ENABLE_1, (uint8_t *) &regIntEnable1, sizeof(ICM_STRUCT_REG_INT_ENABLE_1_t));
+    ret = regRead(ICM_REG_INT_ENABLE_1, (uint8_t *) &regIntEnable1, sizeof(ICM_STRUCT_REG_INT_ENABLE_1_t));
     if (ret != ok) return ret;
 
     if (regIntEnable1.RAW_DATA_0_RDY_EN != on) return err;
@@ -217,14 +229,14 @@ ICM20948::status ICM20948::setIntActiveLow(bool active_low_on) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_INT_PIN_CONF_t reg;
-    ret = read(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    ret = regRead(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.INT1_ACTL = active_low_on ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    ret = regWrite(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -239,14 +251,14 @@ ICM20948::status ICM20948::setIntLatching(bool en_latching) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_INT_PIN_CONF_t reg;
-    ret = read(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    ret = regRead(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.INT1_LATCH_EN = en_latching ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    ret = regWrite(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -261,14 +273,14 @@ ICM20948::status ICM20948::setIntAnyRegReadClears(bool on) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_INT_PIN_CONF_t reg;
-    ret = read(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    ret = regRead(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.INT_ANYRD_2CLEAR = on ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
+    ret = regWrite(ICM_REG_INT_PIN_CONF, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CONF_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -289,15 +301,17 @@ ICM20948::status ICM20948::setGyrFss(uint8_t cnf_gyr_fss) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_GYR_CONF_1_t reg;
-    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    ret = regRead(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.GYRO_FS_SEL = cnf_gyr_fss;
 
     // write whole register back
-    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    ret = regWrite(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
+
+    _gyr_fss = cnf_gyr_fss;
 
     return ok;
 }
@@ -312,12 +326,11 @@ ICM20948::status ICM20948::setGyrSampleRateDivider(uint8_t divider) {
     if (ret != ok) return ret;
 
     // write whole register back
-    ret = write(ICM_REG_GYR_SAMPLE_RATE_DIV, (uint8_t *) &divider);
+    ret = regWrite(ICM_REG_GYR_SAMPLE_RATE_DIV, (uint8_t *) &divider);
     if (ret != ok) return ret;
 
     return ok;
 }
-
 
 ICM20948::status ICM20948::setGyrDlpfConf(uint8_t cnf_gyr_dlpf) {
     status ret;
@@ -328,14 +341,14 @@ ICM20948::status ICM20948::setGyrDlpfConf(uint8_t cnf_gyr_dlpf) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_GYR_CONF_1_t reg;
-    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    ret = regRead(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.GYRO_DLPFCFG = cnf_gyr_dlpf;
 
     // write whole register back
-    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    ret = regWrite(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -350,14 +363,14 @@ ICM20948::status ICM20948::setGyrDlpfEnabled(bool on) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_GYR_CONF_1_t reg;
-    ret = read(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    ret = regRead(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.GYRO_FCHOICE = on ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
+    ret = regWrite(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -374,15 +387,17 @@ ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_ACC_CONF_1_t reg;
-    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    ret = regRead(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.ACCEL_FS_SEL = cnf_acc_fss;
 
     // write whole register back
-    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    ret = regWrite(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
+
+    _acc_fss = cnf_acc_fss;
 
     return ok;
 }
@@ -396,14 +411,14 @@ ICM20948::status ICM20948::setAccDlpfConf(uint8_t cnf_acc_dlpf) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_ACC_CONF_1_t reg;
-    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    ret = regRead(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.ACCEL_DLPFCFG = cnf_acc_dlpf;
 
     // write whole register back
-    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    ret = regWrite(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -418,14 +433,14 @@ ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_ACC_CONF_1_t reg;
-    ret = read(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    ret = regRead(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.ACCEL_FCHOICE = on ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
+    ret = regWrite(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -437,12 +452,114 @@ ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
 /// PRIVATE METHODS                             ///
 //////////////////////////////////////////////////
 
+
+ICM20948::status ICM20948::readRawData() {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // read
+    const uint8_t numbytes = 14 + 9; //Read Accel, gyro, temp, and 9 bytes of mag
+    uint8_t buff[numbytes];
+
+    ret = regRead(ICM_REG_ACCEL_XOUT_H, buff, numbytes);
+    if (ret != ok) return ret;
+
+    dataRaw.acc.axis.x = (int16_t) ((buff[0] << 8) | (buff[1] & 0xFF));
+    dataRaw.acc.axis.y = (int16_t) ((buff[2] << 8) | (buff[3] & 0xFF));
+    dataRaw.acc.axis.z = (int16_t) ((buff[4] << 8) | (buff[5] & 0xFF));
+
+    dataRaw.gyr.axis.x = (int16_t) ((buff[6] << 8) | (buff[7] & 0xFF));
+    dataRaw.gyr.axis.y = (int16_t) ((buff[8] << 8) | (buff[9] & 0xFF));
+    dataRaw.gyr.axis.z = (int16_t) ((buff[10] << 8) | (buff[11] & 0xFF));
+
+    dataRaw.tmp.val = (int16_t) ((buff[12] << 8) | (buff[13] & 0xFF));
+
+    dataRaw.magStat1 = buff[14];
+    dataRaw.mag.axis.x = (int16_t) ((buff[16] << 8) | (buff[15] & 0xFF)); //Mag data is read little endian
+    dataRaw.mag.axis.y = (int16_t) ((buff[18] << 8) | (buff[17] & 0xFF));
+    dataRaw.mag.axis.z = (int16_t) ((buff[20] << 8) | (buff[19] & 0xFF));
+    dataRaw.magStat2 = buff[22];
+
+    return ok;
+}
+
+
+void ICM20948::convertRawData() {
+    dataConverted.gyr.x = getGyrDPS(dataRaw.gyr.axis.x);
+    dataConverted.gyr.y = getGyrDPS(dataRaw.gyr.axis.y);
+    dataConverted.gyr.z = getGyrDPS(dataRaw.gyr.axis.z);
+
+    dataConverted.acc.x = getAccMG(dataRaw.acc.axis.x);
+    dataConverted.acc.y = getAccMG(dataRaw.acc.axis.y);
+    dataConverted.acc.z = getAccMG(dataRaw.acc.axis.z);
+
+    dataConverted.mag.x = getMagUT(dataRaw.mag.axis.x);
+    dataConverted.mag.y = getMagUT(dataRaw.mag.axis.y);
+    dataConverted.mag.z = getMagUT(dataRaw.mag.axis.z);
+
+    dataConverted.temp = getTempC(dataRaw.tmp.val);
+
+    // TODO: mag accruacy
+}
+
+
+double ICM20948::getGyrDPS(int16_t raw) const {
+    switch (_gyr_fss) {
+        case ICM_CNF_GYR_FSS_DPS250:
+            return (((double) raw) / 131);
+            break;
+        case ICM_CNF_GYR_FSS_DPS500:
+            return (((double) raw) / 65.5);
+            break;
+        case ICM_CNF_GYR_FSS_DPS1000:
+            return (((double) raw) / 32.8);
+            break;
+        case ICM_CNF_GYR_FSS_DPS2000:
+            return (((double) raw) / 16.4);
+            break;
+        default:
+            return 0;
+            break;
+    }
+}
+
+double ICM20948::getAccMG(int16_t raw) const {
+    switch (_acc_fss) {
+        case ICM_CNF_ACC_FSS_GMP2:
+            return (((double) raw) / 16.384);
+            break;
+        case ICM_CNF_ACC_FSS_GMP4:
+            return (((double) raw) / 8.192);
+            break;
+        case ICM_CNF_ACC_FSS_GMP8:
+            return (((double) raw) / 4.096);
+            break;
+        case ICM_CNF_ACC_FSS_GMP16:
+            return (((double) raw) / 2.048);
+            break;
+        default:
+            return 0;
+            break;
+    }
+}
+
+double ICM20948::getMagUT(int16_t raw) {
+    return (((double) raw) * 0.15);
+}
+
+double ICM20948::getTempC(int16_t raw) {
+    return (((double) raw - 21) / 333.87) + 21;
+}
+
 ICM20948::status ICM20948::checkWhoAmI() {
 
     uint8_t whoami = 0x00;
 
     setBank(0);
-    read(ICM_REG_WHO_AM_I, &whoami);
+    regRead(ICM_REG_WHO_AM_I, &whoami);
 
     if (whoami != ICM_WHOAMI) return wrongID;
 
@@ -454,10 +571,10 @@ ICM20948::status ICM20948::checkMagWhoAmI() {
 
     uint8_t whoiam1, whoiam2;
 
-    ret = readMag(ICM_MAG_REG_WHOAMI1, &whoiam1);
+    ret = regReadMag(ICM_MAG_REG_WHOAMI1, &whoiam1);
     if (ret != ok) return ret;
 
-    ret = readMag(ICM_MAG_REG_WHOAMI2, &whoiam2);
+    ret = regReadMag(ICM_MAG_REG_WHOAMI2, &whoiam2);
     if (ret != ok) return ret;
 
 
@@ -505,7 +622,7 @@ ICM20948::status ICM20948::setupMagnetometer(bool alsoConfigure) {
     reg.MODE = ICM_MAG_MODE_CONT_100HZ;
     reg.reserved_0 = 0; // Make sure the unused bits are clear. Probably redundant, but prevents confusion when looking at the I2C traffic
 
-    ret = writeMag(ICM_MAG_REG_CNTL2, (uint8_t *) &reg);
+    ret = regWriteMag(ICM_MAG_REG_CNTL2, (uint8_t *) &reg);
     if (ret != ok) return ret;
 
 
@@ -552,10 +669,10 @@ ICM20948::status ICM20948::setBank(uint8_t bank) {
 
     bank = (bank << 4) & 0x30; // bits 5:4 of REG_BANK_SEL
 
-    return write(ICM_REG_BANK_SELECT, &bank, 1);
+    return regWrite(ICM_REG_BANK_SELECT, &bank, 1);
 }
 
-ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
+ICM20948::status ICM20948::regRead(uint8_t reg, uint8_t *data, uint32_t len) {
 
     // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
     // but it guarantees that the lines will start in the correct states even
@@ -580,11 +697,11 @@ ICM20948::status ICM20948::read(uint8_t reg, uint8_t *data, uint32_t len) {
     return ok;
 }
 
-ICM20948::status ICM20948::readMag(uint8_t reg, uint8_t *data) {
+ICM20948::status ICM20948::regReadMag(uint8_t reg, uint8_t *data) {
     return i2cMasterSingleR(ICM_MAG_I2C_ADDR, reg, data);
 }
 
-ICM20948::status ICM20948::write(uint8_t reg, uint8_t *data, uint32_t len) {
+ICM20948::status ICM20948::regWrite(uint8_t reg, uint8_t *data, uint32_t len) {
 
     // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
     // but it guarantees that the lines will start in the correct states even
@@ -610,7 +727,7 @@ ICM20948::status ICM20948::write(uint8_t reg, uint8_t *data, uint32_t len) {
     return ok;
 }
 
-ICM20948::status ICM20948::writeMag(uint8_t reg, uint8_t *data) {
+ICM20948::status ICM20948::regWriteMag(uint8_t reg, uint8_t *data) {
     return i2cMasterSingleW(ICM_MAG_I2C_ADDR, reg, data);
 }
 
@@ -629,13 +746,13 @@ ICM20948::status ICM20948::i2cMasterSetEnable(bool enable) {
     if (ret != ok) return ret;
 
     ICM_STRUCT_REG_I2C_MST_CTRL_t ctrl;
-    ret = read(ICM_REG_I2C_MST_CTRL, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_MST_CTRL_t));
+    ret = regRead(ICM_REG_I2C_MST_CTRL, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_MST_CTRL_t));
     if (ret != ok) return ret;
 
     ctrl.I2C_MST_CLK = 0x07; // corresponds to 345.6 kHz, good for up to 400 kHz
     ctrl.I2C_MST_P_NSR = 1;
 
-    ret = write(ICM_REG_I2C_MST_CTRL, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_MST_CTRL_t));
+    ret = regWrite(ICM_REG_I2C_MST_CTRL, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_MST_CTRL_t));
     if (ret != ok) return ret;
 
 
@@ -644,12 +761,12 @@ ICM20948::status ICM20948::i2cMasterSetEnable(bool enable) {
     if (ret != ok) return ret;
 
     ICM_STRUCT_REG_USER_CTRL_t reg;
-    ret = read(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    ret = regRead(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
     if (ret != ok) return ret;
 
     reg.I2C_MST_EN = enable ? 1 : 0;
 
-    ret = write(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    ret = regWrite(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
     if (ret != ok) return ret;
 
 
@@ -666,14 +783,14 @@ ICM20948::status ICM20948::i2cMasterReset() {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_USER_CTRL_t reg;
-    ret = read(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    ret = regRead(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.I2C_MST_RST = 1; //Reset!
 
     // write whole register back
-    ret = write(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
+    ret = regWrite(ICM_REG_USER_CTRL, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_USER_CTRL_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -690,14 +807,14 @@ ICM20948::status ICM20948::i2cMasterSetPassthrough(bool passthrough) {
 
     // Get previous settings from register, to change only required settings
     ICM_STRUCT_REG_INT_PIN_CNFG_t reg;
-    ret = read(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
+    ret = regRead(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
     if (ret != ok) return ret;
 
     // change needed settings
     reg.BYPASS_EN = passthrough ? 1 : 0;
 
     // write whole register back
-    ret = write(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
+    ret = regWrite(ICM_REG_PWR_MGMT_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_INT_PIN_CNFG_t));
     if (ret != ok) return ret;
 
     return ok;
@@ -721,12 +838,12 @@ ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int
 
     ret = setBank(3);
     if (ret != ok) return ret;
-    write(ICM_REG_I2C_SLV4_ADDR, (uint8_t *) &addr);
+    regWrite(ICM_REG_I2C_SLV4_ADDR, (uint8_t *) &addr);
     if (ret != ok) return ret;
 
     ret = setBank(3);
     if (ret != ok) return ret;
-    write(ICM_REG_I2C_SLV4_REG, (uint8_t *) &reg);
+    regWrite(ICM_REG_I2C_SLV4_REG, (uint8_t *) &reg);
     if (ret != ok) return ret;
 
 
@@ -746,14 +863,14 @@ ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int
         if (!Rw) {
             ret = setBank(3);
             if (ret != ok) return ret;
-            write(ICM_REG_I2C_SLV4_DO, (uint8_t *) &(data[nByte]));
+            regWrite(ICM_REG_I2C_SLV4_DO, (uint8_t *) &(data[nByte]));
             if (ret != ok) return ret;
         }
 
         // kick off tnx
         ret = setBank(3);
         if (ret != ok) return ret;
-        write(ICM_REG_I2C_SLV4_CTRL, (uint8_t *) &i2cControl);
+        regWrite(ICM_REG_I2C_SLV4_CTRL, (uint8_t *) &i2cControl);
         if (ret != ok) return ret;
 
         // long tsTimeout = millis() + 3000;  // Emergency timeout for txn (hard coded to 3 secs)
@@ -764,7 +881,7 @@ ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int
             ret = setBank(0);
             if (ret != ok) return ret;
 
-            read(ICM_REG_I2C_SLV4_DI, (uint8_t *) &i2cMasterStatus);
+            regRead(ICM_REG_I2C_SLV4_DI, (uint8_t *) &i2cMasterStatus);
             if (ret != ok) return ret;
 
             peripheral4Done = (i2cMasterStatus.I2C_PERIPH4_DONE /*| (millis() > tsTimeout) */); //Avoid forever-loops
@@ -779,7 +896,7 @@ ICM20948::i2cControllerTransaction(uint8_t addr, uint8_t reg, uint8_t *data, int
         if (Rw) {
             ret = setBank(3);
             if (ret != ok) return ret;
-            read(ICM_REG_I2C_SLV4_DI, &data[nByte]);
+            regRead(ICM_REG_I2C_SLV4_DI, &data[nByte]);
             if (ret != ok) return ret;
         }
         nByte++;
@@ -839,7 +956,7 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     address.RNW = Rw ? 1 : 0;
 
 
-    ret = write(periph_addr_reg, (uint8_t *) &address, sizeof(ICM_STRUCT_I2C_SLV_ADDR_t));
+    ret = regWrite(periph_addr_reg, (uint8_t *) &address, sizeof(ICM_STRUCT_I2C_SLV_ADDR_t));
     if (ret != ok) return ret;
 
     // If we are setting up a write, configure the Data Out register too
@@ -847,7 +964,7 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
         ICM_STRUCT_REG_I2C_SLV_DO_t dataOutByte;
         dataOutByte.DO = dataOut;
 
-        ret = write(periph_do_reg, (uint8_t *) &dataOutByte, sizeof(ICM_STRUCT_REG_I2C_SLV_DO_t));
+        ret = regWrite(periph_do_reg, (uint8_t *) &dataOutByte, sizeof(ICM_STRUCT_REG_I2C_SLV_DO_t));
         if (ret != ok) return ret;
     }
 
@@ -855,7 +972,7 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     ICM_STRUCT_REG_I2C_SLV_REG_t subAddress;
     subAddress.REG = reg;
 
-    ret = write(periph_reg_reg, (uint8_t *) &subAddress, sizeof(ICM_STRUCT_REG_I2C_SLV_REG_t));
+    ret = regWrite(periph_reg_reg, (uint8_t *) &subAddress, sizeof(ICM_STRUCT_REG_I2C_SLV_REG_t));
     if (ret != ok) return ret;
 
     // Set up the control info
@@ -865,7 +982,7 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     ctrl.REG_DIS = data_only;
     ctrl.GRP = grp;
     ctrl.BYTE_SW = swap;
-    ret = write(periph_ctrl_reg, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_SLV_CTRL_t));
+    ret = regWrite(periph_ctrl_reg, (uint8_t *) &ctrl, sizeof(ICM_STRUCT_REG_I2C_SLV_CTRL_t));
     if (ret != ok) return ret;
 
     return ok;
