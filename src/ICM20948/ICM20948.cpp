@@ -950,7 +950,7 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     }
 
     // Set correct bank
-    ret = setBank(0);
+    ret = setBank(3);
     if (ret != ok) return ret;
 
     ICM_STRUCT_I2C_SLV_ADDR_t address;
