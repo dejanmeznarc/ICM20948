@@ -452,6 +452,7 @@ ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
 /// PRIVATE METHODS                             ///
 //////////////////////////////////////////////////
 
+// read and parse data
 
 ICM20948::status ICM20948::readRawData() {
     status ret;
@@ -486,7 +487,6 @@ ICM20948::status ICM20948::readRawData() {
     return ok;
 }
 
-
 void ICM20948::convertRawData() {
     dataConverted.gyr.x = getGyrDPS(dataRaw.gyr.axis.x);
     dataConverted.gyr.y = getGyrDPS(dataRaw.gyr.axis.y);
@@ -504,7 +504,6 @@ void ICM20948::convertRawData() {
 
     // TODO: mag accruacy
 }
-
 
 double ICM20948::getGyrDPS(int16_t raw) const {
     switch (_gyr_fss) {
@@ -553,6 +552,8 @@ double ICM20948::getMagUT(int16_t raw) {
 double ICM20948::getTempC(int16_t raw) {
     return (((double) raw - 21) / 333.87) + 21;
 }
+
+// who am i
 
 ICM20948::status ICM20948::checkWhoAmI() {
 
