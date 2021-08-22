@@ -1,5 +1,5 @@
 //
-// Copyright (c) Dejan 2021.
+// Copyright (c) Dejan $originalComment.match("Copyright \(c\) (\d+)", 1, "-")2021.
 //
 
 
@@ -10,7 +10,8 @@
 
 #include "Arduino.h"
 #include "SPI.h"
-#include "register_map.h"
+#include "includes/registers/all.h"
+#include "includes/datatypes.h"
 
 
 class ICM20948 {
