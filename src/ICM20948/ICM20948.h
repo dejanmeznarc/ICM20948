@@ -137,7 +137,7 @@ private:
 
     status regReadMag(uint8_t reg, uint8_t *data);
 
-    status regWrite(uint8_t reg, uint8_t *data, uint32_t len = 1);
+    status regWrite(uint8_t reg, const uint8_t *data, uint32_t len = 1);
 
     status regWriteMag(uint8_t reg, uint8_t *data);
 

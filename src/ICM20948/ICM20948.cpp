@@ -702,7 +702,7 @@ ICM20948::status ICM20948::regReadMag(uint8_t reg, uint8_t *data) {
     return i2cMasterSingleR(ICM_MAG_I2C_ADDR, reg, data);
 }
 
-ICM20948::status ICM20948::regWrite(uint8_t reg, uint8_t *data, uint32_t len) {
+ICM20948::status ICM20948::regWrite(uint8_t reg, const uint8_t *data, uint32_t len) {
 
     // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
     // but it guarantees that the lines will start in the correct states even
