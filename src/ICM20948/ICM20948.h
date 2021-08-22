@@ -55,7 +55,7 @@ public:
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 
     // Interrupt settings
-    ICM20948::status rawDataInterrupt(void (*callback)());
+    status rawDataInterrupt(void (*callback)());
 
     status setIntEnableOnRawDataReady(bool on);
 
@@ -68,6 +68,8 @@ public:
 
     // Gyro configuration
     status setGyrFss(uint8_t cnf_gyr_fss);
+
+    status setGyrSampleRateDivider(uint8_t divider);
 
     status setGyrDlpfConf(uint8_t cnf_gyr_dlpf);
 

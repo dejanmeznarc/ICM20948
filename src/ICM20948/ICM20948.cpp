@@ -302,6 +302,23 @@ ICM20948::status ICM20948::setGyrFss(uint8_t cnf_gyr_fss) {
     return ok;
 }
 
+// this setting is active only if gyro sample mode is set to ICM_CNF_SAMPLE_MODE_CYCLE
+// ODR (output data rate) is calculated with  1.1 kHz/(1+GYRO_SMPLRT_DIV[7:0])
+ICM20948::status ICM20948::setGyrSampleRateDivider(uint8_t divider) {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(2);
+    if (ret != ok) return ret;
+
+    // write whole register back
+    ret = write(ICM_REG_GYR_SAMPLE_RATE_DIV, (uint8_t *) &divider);
+    if (ret != ok) return ret;
+
+    return ok;
+}
+
+
 ICM20948::status ICM20948::setGyrDlpfConf(uint8_t cnf_gyr_dlpf) {
     status ret;
 

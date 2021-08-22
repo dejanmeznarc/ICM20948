@@ -12,9 +12,6 @@ ICM20948 imu(IMU_CS, SPI, 7000000, IMU_INT);
 
 ICM20948::status begin_status = ICM20948::unknown;
 ICM20948::status set_int_status = ICM20948::unknown;
-ICM20948::status conf_int_status = ICM20948::unknown;
-ICM20948::status conf_int_latch_status = ICM20948::unknown;
-ICM20948::status conf_int_anyre_status = ICM20948::unknown;
 
 
 unsigned long last_us = 0;
@@ -68,28 +65,10 @@ void loop() {
     }
 
 
-    if (conf_int_status == ICM20948::ok) Serial.println("int status: ok");
+    if (set_int_status == ICM20948::ok) Serial.println("int status: ok");
     else {
         Serial.print("int status is NOT OK: error=");
-        Serial.println(conf_int_status);
-    }
-
-    if (conf_int_status == ICM20948::ok) Serial.println("conf int status: ok");
-    else {
-        Serial.print("conf int status is NOT OK: error=");
-        Serial.println(conf_int_status);
-    }
-
-    if (conf_int_latch_status == ICM20948::ok) Serial.println("conf_int_latch_status status: ok");
-    else {
-        Serial.print("conf_int_latch_status is NOT OK: error=");
-        Serial.println(conf_int_latch_status);
-    }
-
-    if (conf_int_anyre_status == ICM20948::ok) Serial.println("conf_int_anyre_status status: ok");
-    else {
-        Serial.print("conf_int_anyre_status is NOT OK: error=");
-        Serial.println(conf_int_anyre_status);
+        Serial.println(set_int_status);
     }
 
 
