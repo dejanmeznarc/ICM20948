@@ -1,5 +1,5 @@
 //
-// Created by dejan on 20/08/2021.
+// Copyright (c) Dejan 2021.
 //
 
 #include "ICM20948.h"
@@ -987,6 +987,62 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     if (ret != ok) return ret;
 
     return ok;
+}
+
+String ICM20948::getErrMsg(ICM20948::status s) {
+    switch (s) {
+        case ok:
+            return "All is well.";
+            break;
+        case err:
+            return "General Error";
+            break;
+        case notImpl:
+            return "Not Implemented";
+            break;
+        case paramErr:
+            return "Parameter Error";
+            break;
+        case wrongID:
+            return "Wrong ID";
+            break;
+        case invalSensor:
+            return "Invalid Sensor";
+            break;
+        case noData:
+            return "Data Underflow";
+            break;
+        case sensorNotSupported:
+            return "Sensor Not Supported";
+            break;
+        case DMPNotSupported:
+            return "DMP Firmware Not Supported. Is #define ICM_20948_USE_DMP commented in util/ICM_20948_C.h?";
+            break;
+        case DMPVerifyFail:
+            return "DMP Firmware Verification Failed";
+            break;
+        case FIFONoDataAvail:
+            return "No FIFO Data Available";
+            break;
+        case FIFOIncompleteData:
+            return "DMP data in FIFO was incomplete";
+            break;
+        case FIFOMoreDataAvail:
+            return "More FIFO Data Available";
+            break;
+        case unrecognisedDMPHeader:
+            return "Unrecognised DMP Header";
+            break;
+        case unrecognisedDMPHeader2:
+            return "Unrecognised DMP Header2";
+            break;
+        case invalDMPRegister:
+            return "Invalid DMP Register";
+            break;
+        default:
+            return "Unknown Status code";
+            break;
+    }
 }
 
 

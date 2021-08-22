@@ -1,6 +1,9 @@
 //
-// Created by dejan on 20/08/2021.
+// Copyright (c) Dejan 2021.
 //
+
+
+
 
 #ifndef ICM20948_ICM20948_H
 #define ICM20948_ICM20948_H
@@ -93,6 +96,9 @@ public:
     status setAccDlpfConf(uint8_t cnf_acc_dlpf);
 
     status setAccDlpfEnabled(bool on);
+
+
+    static String getErrMsg(status s);
 
 
 private:

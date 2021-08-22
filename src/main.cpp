@@ -1,3 +1,7 @@
+//
+// Copyright (c) Dejan 2021.
+//
+
 #include <Arduino.h>
 #include <ICM20948/ICM20948.h>
 
@@ -18,7 +22,9 @@ ICM20948 imu2(IMU_2_CS, SPIsecond, 7000000, IMU_2_INT);
 
 
 void checkStatus(ICM20948::status s, String str = "undefined error") {
-    Serial.println(s == ICM20948::ok ? str + ": ok" : " error: " + String(s));
+    if (s != ICM20948::ok) {
+        Serial.println("error at " + str + " code: " + String(s) + " msg:" + ICM20948::getErrMsg(s));
+    }
 }
 
 void setup() {
@@ -51,7 +57,7 @@ void loop() {
     imu.read();
     imu2.read();
     Serial.println(String(imu.dataRaw.gyr.axis.x) + " -> " + String(imu.dataConverted.gyr.x)
-                   + " | " + String(imu2.dataRaw.gyr.axis.x) + " -> " + String(imu2.dataConverted.gyr.x));
+                                                             + " | " + String(imu2.dataRaw.gyr.axis.x) + " -> " + String(imu2.dataConverted.gyr.x));
 
 
 }
