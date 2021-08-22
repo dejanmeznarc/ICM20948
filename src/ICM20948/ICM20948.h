@@ -39,7 +39,7 @@ public:
 
     explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000, uint8_t pinInterrupt = 0);
 
-    status begin(bool alsoConfigure);
+    status begin(bool alsoConfigure = true);
 
     status read();
 

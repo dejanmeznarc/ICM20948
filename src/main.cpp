@@ -31,7 +31,7 @@ void setup() {
     Serial.println("init of imu");
 
 
-    checkStatus(imu.begin(true), "Begin");
+    checkStatus(imu.begin(), "Begin");
 
     checkStatus(imu.read(), "read");
 }
