@@ -378,7 +378,7 @@ ICM20948::status ICM20948::setGyrDlpfEnabled(bool on) {
 
 
 // Accel config
-ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
+ICM20948::status ICM20948::setAccFss(uint8_t cnf_acc_fss) {
     status ret;
 
     // Set correct bank
@@ -452,6 +452,7 @@ ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
 /// PRIVATE METHODS                             ///
 //////////////////////////////////////////////////
 
+// read and parse data
 
 ICM20948::status ICM20948::readRawData() {
     status ret;
@@ -486,7 +487,6 @@ ICM20948::status ICM20948::readRawData() {
     return ok;
 }
 
-
 void ICM20948::convertRawData() {
     dataConverted.gyr.x = getGyrDPS(dataRaw.gyr.axis.x);
     dataConverted.gyr.y = getGyrDPS(dataRaw.gyr.axis.y);
@@ -504,7 +504,6 @@ void ICM20948::convertRawData() {
 
     // TODO: mag accruacy
 }
-
 
 double ICM20948::getGyrDPS(int16_t raw) const {
     switch (_gyr_fss) {
@@ -553,6 +552,8 @@ double ICM20948::getMagUT(int16_t raw) {
 double ICM20948::getTempC(int16_t raw) {
     return (((double) raw - 21) / 333.87) + 21;
 }
+
+// who am i
 
 ICM20948::status ICM20948::checkWhoAmI() {
 
@@ -649,7 +650,7 @@ ICM20948::status ICM20948::setDefaultConfig() {
 
 
     //Configure accel
-    ret = setAccFSS(ICM_CNF_ACC_FSS_GMP2);
+    ret = setAccFss(ICM_CNF_ACC_FSS_GMP2);
     if (ret != ok) return ret;
     ret = setAccDlpfConf(ICM_CNF_ACC_DLPF_D473BW_N499BW);
     if (ret != ok) return ret;
@@ -701,7 +702,7 @@ ICM20948::status ICM20948::regReadMag(uint8_t reg, uint8_t *data) {
     return i2cMasterSingleR(ICM_MAG_I2C_ADDR, reg, data);
 }
 
-ICM20948::status ICM20948::regWrite(uint8_t reg, uint8_t *data, uint32_t len) {
+ICM20948::status ICM20948::regWrite(uint8_t reg, const uint8_t *data, uint32_t len) {
 
     // 'Kickstart' the SPI hardware. This is a fairly high amount of overhead,
     // but it guarantees that the lines will start in the correct states even

@@ -37,11 +37,17 @@ public:
     };
 
 
+    ICM_data_raw_t dataRaw{};
+    ICM_data_converted_t dataConverted{};
+
+
     explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000, uint8_t pinInterrupt = 0);
 
-    status begin(bool alsoConfigure);
+
+    status begin(bool alsoConfigure = true);
 
     status read();
+
 
     // Chip resets
     status reset();
@@ -56,6 +62,7 @@ public:
 
     status setSampleMode(uint8_t sensors, uint8_t cnf_sample_mode);
 
+
     // Interrupt settings
     status rawDataInterrupt(void (*callback)());
 
@@ -66,6 +73,8 @@ public:
     status setIntLatching(bool en_latching);// If not latching then the interrupt is a 50 us pulse
     // If enabled, *ANY* read will clear the INT_STATUS register. So if you have multiple interrupt sources enabled be sure to read INT_STATUS first
     status setIntAnyRegReadClears(bool on);
+
+    uint8_t getIntPin() const;
 
 
     // Gyro configuration
@@ -79,17 +88,12 @@ public:
 
 
     // Accel config
-    status setAccFSS(uint8_t cnf_acc_fss);
+    status setAccFss(uint8_t cnf_acc_fss);
 
     status setAccDlpfConf(uint8_t cnf_acc_dlpf);
 
     status setAccDlpfEnabled(bool on);
 
-
-    uint8_t getIntPin() const;
-
-    ICM_data_raw_t dataRaw;
-    ICM_data_converted_t dataConverted;
 
 private:
 
@@ -133,7 +137,7 @@ private:
 
     status regReadMag(uint8_t reg, uint8_t *data);
 
-    status regWrite(uint8_t reg, uint8_t *data, uint32_t len = 1);
+    status regWrite(uint8_t reg, const uint8_t *data, uint32_t len = 1);
 
     status regWriteMag(uint8_t reg, uint8_t *data);
 
