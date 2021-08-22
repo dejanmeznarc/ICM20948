@@ -18,7 +18,9 @@ ICM20948 imu2(IMU_2_CS, SPIsecond, 7000000, IMU_2_INT);
 
 
 void checkStatus(ICM20948::status s, String str = "undefined error") {
-    Serial.println(s == ICM20948::ok ? str + ": ok" : " error: " + String(s));
+    if (s != ICM20948::ok) {
+        Serial.println("error at " + str + " code: " + String(s) + " msg:" + ICM20948::getErrMsg(s));
+    }
 }
 
 void setup() {

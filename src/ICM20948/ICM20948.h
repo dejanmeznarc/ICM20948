@@ -95,6 +95,9 @@ public:
     status setAccDlpfEnabled(bool on);
 
 
+    static String getErrMsg(status s);
+
+
 private:
 
 
