@@ -188,7 +188,7 @@ typedef struct {
 
 
 
-
+#define ICM_REG_ACCEL_XOUT_H 0x2D
 
 
 //ICM_CNF_ACC_FSS_GMP2 - bank2
@@ -328,5 +328,44 @@ typedef struct {
 
 #define ICM_MAG_REG_CNTL3 0x32
 
+
+
+//////////////////// DATATYPES
+
+typedef union {
+    int16_t i16bit[3];
+    uint8_t u8bit[6];
+} ICM_axis3bit16_t;
+
+typedef union {
+    ICM_axis3bit16_t raw;
+    struct {
+        int16_t x, y, z;
+    } axis;
+} ICM_raw_axis_t;
+
+
+typedef struct {
+    ICM_raw_axis_t acc, gyr, mag;
+
+    union {
+        ICM_axis3bit16_t raw;
+        int16_t val;
+    } tmp;
+//TODO FSS???
+    uint8_t magStat1, magStat2;
+
+} ICM_data_raw_t;
+
+
+typedef struct {
+    double x, y, z;
+} ICM_axis_t;
+
+typedef struct {
+    ICM_axis_t acc, gyr, mag;
+    double temp;
+    double magAcc;
+} ICM_data_converted_t;
 
 #pragma clang diagnostic pop

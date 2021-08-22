@@ -53,6 +53,18 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     return setDefaultConfig();
 }
 
+ICM20948::status ICM20948::read() {
+    status ret;
+
+    ret = readRawData();
+    if (ret != ok) return ret;
+
+
+    convertRawData();
+    return ok;
+}
+
+
 ICM20948::status ICM20948::reset() {
     status ret;
 
@@ -299,6 +311,8 @@ ICM20948::status ICM20948::setGyrFss(uint8_t cnf_gyr_fss) {
     ret = regWrite(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
+    _gyr_fss = cnf_gyr_fss;
+
     return ok;
 }
 
@@ -383,6 +397,8 @@ ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
     ret = regWrite(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
+    _acc_fss = cnf_acc_fss;
+
     return ok;
 }
 
@@ -435,6 +451,108 @@ ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
 ////////////////////////////////////////////////////
 /// PRIVATE METHODS                             ///
 //////////////////////////////////////////////////
+
+
+ICM20948::status ICM20948::readRawData() {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // read
+    const uint8_t numbytes = 14 + 9; //Read Accel, gyro, temp, and 9 bytes of mag
+    uint8_t buff[numbytes];
+
+    ret = regRead(ICM_REG_ACCEL_XOUT_H, buff, numbytes);
+    if (ret != ok) return ret;
+
+    dataRaw.acc.axis.x = (int16_t) ((buff[0] << 8) | (buff[1] & 0xFF));
+    dataRaw.acc.axis.y = (int16_t) ((buff[2] << 8) | (buff[3] & 0xFF));
+    dataRaw.acc.axis.z = (int16_t) ((buff[4] << 8) | (buff[5] & 0xFF));
+
+    dataRaw.gyr.axis.x = (int16_t) ((buff[6] << 8) | (buff[7] & 0xFF));
+    dataRaw.gyr.axis.y = (int16_t) ((buff[8] << 8) | (buff[9] & 0xFF));
+    dataRaw.gyr.axis.z = (int16_t) ((buff[10] << 8) | (buff[11] & 0xFF));
+
+    dataRaw.tmp.val = (int16_t) ((buff[12] << 8) | (buff[13] & 0xFF));
+
+    dataRaw.magStat1 = buff[14];
+    dataRaw.mag.axis.x = (int16_t) ((buff[16] << 8) | (buff[15] & 0xFF)); //Mag data is read little endian
+    dataRaw.mag.axis.y = (int16_t) ((buff[18] << 8) | (buff[17] & 0xFF));
+    dataRaw.mag.axis.z = (int16_t) ((buff[20] << 8) | (buff[19] & 0xFF));
+    dataRaw.magStat2 = buff[22];
+
+    return ok;
+}
+
+
+void ICM20948::convertRawData() {
+    dataConverted.gyr.x = getGyrDPS(dataRaw.gyr.axis.x);
+    dataConverted.gyr.y = getGyrDPS(dataRaw.gyr.axis.y);
+    dataConverted.gyr.z = getGyrDPS(dataRaw.gyr.axis.z);
+
+    dataConverted.acc.x = getAccMG(dataRaw.acc.axis.x);
+    dataConverted.acc.y = getAccMG(dataRaw.acc.axis.y);
+    dataConverted.acc.z = getAccMG(dataRaw.acc.axis.z);
+
+    dataConverted.mag.x = getMagUT(dataRaw.mag.axis.x);
+    dataConverted.mag.y = getMagUT(dataRaw.mag.axis.y);
+    dataConverted.mag.z = getMagUT(dataRaw.mag.axis.z);
+
+    dataConverted.temp = getTempC(dataRaw.tmp.val);
+
+    // TODO: mag accruacy
+}
+
+
+double ICM20948::getGyrDPS(int16_t raw) const {
+    switch (_gyr_fss) {
+        case ICM_CNF_GYR_FSS_DPS250:
+            return (((double) raw) / 131);
+            break;
+        case ICM_CNF_GYR_FSS_DPS500:
+            return (((double) raw) / 65.5);
+            break;
+        case ICM_CNF_GYR_FSS_DPS1000:
+            return (((double) raw) / 32.8);
+            break;
+        case ICM_CNF_GYR_FSS_DPS2000:
+            return (((double) raw) / 16.4);
+            break;
+        default:
+            return 0;
+            break;
+    }
+}
+
+double ICM20948::getAccMG(int16_t raw) const {
+    switch (_acc_fss) {
+        case ICM_CNF_ACC_FSS_GMP2:
+            return (((double) raw) / 16.384);
+            break;
+        case ICM_CNF_ACC_FSS_GMP4:
+            return (((double) raw) / 8.192);
+            break;
+        case ICM_CNF_ACC_FSS_GMP8:
+            return (((double) raw) / 4.096);
+            break;
+        case ICM_CNF_ACC_FSS_GMP16:
+            return (((double) raw) / 2.048);
+            break;
+        default:
+            return 0;
+            break;
+    }
+}
+
+double ICM20948::getMagUT(int16_t raw) {
+    return (((double) raw) * 0.15);
+}
+
+double ICM20948::getTempC(int16_t raw) {
+    return (((double) raw - 21) / 333.87) + 21;
+}
 
 ICM20948::status ICM20948::checkWhoAmI() {
 
