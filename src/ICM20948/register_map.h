@@ -144,7 +144,7 @@ typedef struct {
 #define ICM_INTERNAL_MST (1 <<4 ) // internal i2c maser
 
 
-// aka AGB0_REG_LP_CONFIG, ICM_20948_LP_CONFIG_t
+// aka AGB0_REG_LP_CONFIG, ICM_20948_LP_CONFIG_t bank 0
 #define ICM_REG_LP_CONFIG 0x05
 typedef struct {
     uint8_t reserved_0: 4;
@@ -283,6 +283,7 @@ typedef struct {
 } ICM_STRUCT_REG_INT_PIN_CONF_t;
 
 
+#define ICM_REG_ACCEL_XOUT_H 0x2D
 
 
 
@@ -320,6 +321,48 @@ typedef struct {
 
 
 #define ICM_MAG_REG_CNTL3 0x32
+
+
+
+
+
+//////////////////// DATATYPES
+
+typedef union {
+    int16_t i16bit[3];
+    uint8_t u8bit[6];
+} ICM_axis3bit16_t;
+
+typedef union {
+    ICM_axis3bit16_t raw;
+    struct {
+        int16_t x, y, z;
+    } axis;
+} ICM_raw_axis_t;
+
+
+typedef struct {
+    ICM_raw_axis_t acc, gyr, mag;
+
+    union {
+        ICM_axis3bit16_t raw;
+        int16_t val;
+    } tmp;
+//TODO FSS???
+    uint8_t magStat1, magStat2;
+
+} ICM_raw_data_t;
+
+
+typedef struct {
+    double x, y, z;
+} ICM_axis_t;
+
+typedef struct {
+    ICM_axis_t acc, gyr, mag;
+    double temp;
+    double magAcc;
+} ICM_converted_data_t;
 
 
 #pragma clang diagnostic pop

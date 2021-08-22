@@ -39,13 +39,17 @@ public:
 
     explicit ICM20948(uint8_t pinCs, SPIClass &spiPort = SPI, uint32_t spiFreq = 7000000, uint8_t pinInterrupt = 0);
 
-    status begin(bool alsoConfigure);
+    status begin(bool alsoConfigure = true);
 
     // Read values
+    status read();
 
-    status autoFetchData(bool enable);
+    ICM_converted_data_t getData();
 
-    void autoFetchCallback();
+    void convertRawData();
+
+
+    status autoFetchData(bool enable = true);
 
 
     // Chip resets
@@ -91,6 +95,13 @@ public:
     status setAccDlpfEnabled(bool on);
 
 
+    bool dataAvailable = false;
+
+    bool newRawData = false;
+    ICM_raw_data_t rawData;
+    bool newData = true;
+    ICM_converted_data_t data;
+
 private:
 
 
@@ -99,9 +110,23 @@ private:
     SPIClass *_spi;
     SPISettings _spiSettings;
 
+    uint8_t _gyro_fss = 255;
+    uint8_t _accel_fss = 255;
 
     uint8_t _cur_bank = 255; // bank 255 doesnt exists, set it as init
 
+
+    // read raw data
+
+    status readRawData();
+
+    double getGyrDPS(int16_t raw) const;
+
+    double getAccMG(int16_t raw) const;
+
+    static double getMagUT(int16_t raw);
+
+    static double getTempC(int16_t raw);
 
     // other functions that set some settings
     status checkWhoAmI();

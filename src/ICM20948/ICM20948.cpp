@@ -103,8 +103,10 @@ ICM20948::status ICM20948::autoFetchData(bool enable) {
         ret = setIntAnyRegReadClears(true);
         if (ret != ok) return ret;
 
+        // TODO it doesnt work with high sample rates on low speed processors!
+
         // Magic call: https://github.com/arduino/ArduinoCore-API/issues/99#issuecomment-582855604
-        attachInterrupt(_pin_int, [this] { autoFetchCallback(); }, FALLING);
+        attachInterrupt(_pin_int, [this] { dataAvailable = true; }, FALLING);
 
     } else {
         // TODO: reset changed settings to default
@@ -112,12 +114,6 @@ ICM20948::status ICM20948::autoFetchData(bool enable) {
     }
 
     return ok;
-}
-
-
-void ICM20948::autoFetchCallback() {
-    Serial.println("CALL BACK !! YEY");
-    //TODO: read data and put it into class memory
 }
 
 
@@ -338,6 +334,8 @@ ICM20948::status ICM20948::setGyrFss(uint8_t cnf_gyr_fss) {
     ret = regWrite(ICM_REG_GYR_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_GYR_CONF_1_t));
     if (ret != ok) return ret;
 
+    _gyro_fss = cnf_gyr_fss;
+
     return ok;
 }
 
@@ -406,6 +404,8 @@ ICM20948::status ICM20948::setAccFSS(uint8_t cnf_acc_fss) {
     ret = regWrite(ICM_REG_ACC_CONF_1, (uint8_t *) &reg, sizeof(ICM_STRUCT_REG_ACC_CONF_1_t));
     if (ret != ok) return ret;
 
+    _accel_fss = cnf_acc_fss;
+
     return ok;
 }
 
@@ -454,10 +454,132 @@ ICM20948::status ICM20948::setAccDlpfEnabled(bool on) {
 }
 
 
+// Read values
+
+ICM20948::status ICM20948::read() {
+    status ret;
+    ret = readRawData();
+    if (ret != ok) return ret;
+
+
+    convertRawData();
+    return ok;
+}
+
+
+// convert values
+
+
 
 ////////////////////////////////////////////////////
 /// PRIVATE METHODS                             ///
 //////////////////////////////////////////////////
+
+
+ICM20948::status ICM20948::readRawData() {
+    status ret;
+
+    // Set correct bank
+    ret = setBank(0);
+    if (ret != ok) return ret;
+
+    // read
+    const uint8_t numbytes = 14 + 9; //Read Accel, gyro, temp, and 9 bytes of mag
+    uint8_t buff[numbytes];
+
+    ret = regRead(ICM_REG_ACCEL_XOUT_H, buff, numbytes);
+    if (ret != ok) return ret;
+
+    rawData.acc.axis.x = (int16_t) ((buff[0] << 8) | (buff[1] & 0xFF));
+    rawData.acc.axis.y = (int16_t) ((buff[2] << 8) | (buff[3] & 0xFF));
+    rawData.acc.axis.z = (int16_t) ((buff[4] << 8) | (buff[5] & 0xFF));
+
+    rawData.gyr.axis.x = (int16_t) ((buff[6] << 8) | (buff[7] & 0xFF));
+    rawData.gyr.axis.y = (int16_t) ((buff[8] << 8) | (buff[9] & 0xFF));
+    rawData.gyr.axis.z = (int16_t) ((buff[10] << 8) | (buff[11] & 0xFF));
+
+    rawData.tmp.val = (int16_t) ((buff[12] << 8) | (buff[13] & 0xFF));
+
+    rawData.magStat1 = buff[14];
+    rawData.mag.axis.x = (int16_t) ((buff[16] << 8) | (buff[15] & 0xFF)); //Mag data is read little endian
+    rawData.mag.axis.y = (int16_t) ((buff[18] << 8) | (buff[17] & 0xFF));
+    rawData.mag.axis.z = (int16_t) ((buff[20] << 8) | (buff[19] & 0xFF));
+    rawData.magStat2 = buff[22];
+
+    return ok;
+}
+
+
+void ICM20948::convertRawData() {
+
+    newRawData = false;
+
+    data.gyr.x = getGyrDPS(rawData.gyr.axis.x);
+    data.gyr.y = getGyrDPS(rawData.gyr.axis.y);
+    data.gyr.z = getGyrDPS(rawData.gyr.axis.z);
+
+    data.acc.x = getAccMG(rawData.acc.axis.x);
+    data.acc.y = getAccMG(rawData.acc.axis.y);
+    data.acc.z = getAccMG(rawData.acc.axis.z);
+
+    data.mag.x = getMagUT(rawData.mag.axis.x);
+    data.mag.y = getMagUT(rawData.mag.axis.y);
+    data.mag.z = getMagUT(rawData.mag.axis.z);
+
+    data.temp = getTempC(rawData.tmp.val);
+
+    // TODO: mag accruacy
+}
+
+
+double ICM20948::getGyrDPS(int16_t raw) const {
+    switch (_gyro_fss) {
+        case ICM_CNF_GYR_FSS_DPS250:
+            return (((double) raw) / 131);
+            break;
+        case ICM_CNF_GYR_FSS_DPS500:
+            return (((double) raw) / 65.5);
+            break;
+        case ICM_CNF_GYR_FSS_DPS1000:
+            return (((double) raw) / 32.8);
+            break;
+        case ICM_CNF_GYR_FSS_DPS2000:
+            return (((double) raw) / 16.4);
+            break;
+        default:
+            return 0;
+            break;
+    }
+}
+
+double ICM20948::getAccMG(int16_t raw) const {
+    switch (_accel_fss) {
+        case ICM_CNF_ACC_FSS_GMP2:
+            return (((double) raw) / 16.384);
+            break;
+        case ICM_CNF_ACC_FSS_GMP4:
+            return (((double) raw) / 8.192);
+            break;
+        case ICM_CNF_ACC_FSS_GMP8:
+            return (((double) raw) / 4.096);
+            break;
+        case ICM_CNF_ACC_FSS_GMP16:
+            return (((double) raw) / 2.048);
+            break;
+        default:
+            return 0;
+            break;
+    }
+}
+
+double ICM20948::getMagUT(int16_t raw) {
+    return (((double) raw) * 0.15);
+}
+
+double ICM20948::getTempC(int16_t raw) {
+    return (((double) raw - 21) / 333.87) + 21;
+}
+
 
 ICM20948::status ICM20948::checkWhoAmI() {
 
@@ -891,6 +1013,11 @@ ICM20948::i2cControllerConfigure(uint8_t slaveNum, uint8_t addr, uint8_t reg, ui
     if (ret != ok) return ret;
 
     return ok;
+}
+
+ICM_converted_data_t ICM20948::getData() {
+    if (newRawData) convertRawData();
+    return data;
 }
 
 
