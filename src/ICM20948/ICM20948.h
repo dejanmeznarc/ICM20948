@@ -111,13 +111,13 @@ private:
     // Read and write functions to registers
     status setBank(uint8_t bank);
 
-    status read(uint8_t reg, uint8_t *data, uint32_t len = 1);
+    status regRead(uint8_t reg, uint8_t *data, uint32_t len = 1);
 
-    status readMag(uint8_t reg, uint8_t *data);
+    status regReadMag(uint8_t reg, uint8_t *data);
 
-    status write(uint8_t reg, uint8_t *data, uint32_t len = 1);
+    status regWrite(uint8_t reg, uint8_t *data, uint32_t len = 1);
 
-    status writeMag(uint8_t reg, uint8_t *data);
+    status regWriteMag(uint8_t reg, uint8_t *data);
 
 
     // I2C configuration for accessing mag
