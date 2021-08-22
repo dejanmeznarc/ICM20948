@@ -1,5 +1,5 @@
 //
-// Copyright (c) Dejan 2021.
+// Copyright (c) Dejan $originalComment.match("Copyright \(c\) (\d+)", 1, "-")2021.
 //
 
 #include "ICM20948.h"
@@ -24,6 +24,7 @@ ICM20948::status ICM20948::begin(bool alsoConfigure) {
     digitalWrite(_pin_cs, HIGH);
 
     // Kickstart SPI hardware
+    _spi->begin();
     _spi->beginTransaction(_spiSettings);
     _spi->transfer(0x00);
     _spi->endTransaction();
